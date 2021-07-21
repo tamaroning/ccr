@@ -1,12 +1,13 @@
 # ccr : C Compiler written in Rust
+Ccr is a toy compiler of Rust. In order to understand Rust and compilers, I am developing ccr.
 
 # Usage
 
 ## Compile
 To use ccr, run the following scripts:
 ```
-cd ccr
-make
+$ cd ccr
+$ make
 ```
 
 ## Run
