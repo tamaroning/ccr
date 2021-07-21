@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::env;
-
+use std::fmt;
 
 fn main() {
     let argv: Vec<String> = env::args().collect();
@@ -43,9 +43,9 @@ fn main() {
 fn test_func () {
     println!("=== test start ===");
 
-    let tokens = tokenize(String::from("1+2+3"));
-    
+    let tokens = tokenize(String::from("1+a2+3"));
     println!("{:?}", tokens);
+
 
 }
 
@@ -83,8 +83,9 @@ fn tokenize(input: String) -> Vec<Token> {
                 tokenizer.consume_char();
                 tokens.push(Token{ kind: TokenKind::Minus });
             },
-
-            _ => panic!("invalid input"),
+            _ => {
+                tokenizer.error_at(tokenizer.pos, format_args!("invalid character"));
+            },
         }
     }
     tokens
@@ -121,13 +122,26 @@ impl Tokenizer {
         self.consume_while(char::is_whitespace);
     }
 
-    // 負の値には未対応
+    // 単項+/-には未対応
     fn consume_number(&mut self) -> i32 {
         let s = self.consume_while(|c| match c {
             '0'..='9' => true,
             _ => false,
         });
         s.parse::<i32>().unwrap()
+    }
+
+    //エラー出力関数の作成 動作未確認
+    fn error_at(&self, loc: usize, args: fmt::Arguments) {
+        println!("{}", self.input);
+        print!("{}"," ".repeat(loc));
+        println!("^ ");
+        print!("{}"," ".repeat(loc));
+        println!("{}", args);
+        println!("");
+
+        panic!("invalid input at character: {}", loc);
+
     }
 
     /*
