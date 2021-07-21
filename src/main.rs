@@ -12,26 +12,26 @@ fn main() {
         return;
     }
 
-    let mut parser = Parser { pos: 0, input: argv[1].clone(),};
+    let mut tokenizer = Tokenizer { pos: 0, input: argv[1].clone(),};
 
     println!(".intel_syntax noprefix");
     println!(".section __TEXT,__text");
     println!(".global _main");
     println!("_main:");
-    println!("    mov rax, {}", parser.parse_uint());
+    println!("    mov rax, {}", tokenizer.consume_number());
     
-    while !parser.eof() {
-        if parser.next_char() == '+' {
-            parser.consume_char();
-            println!("    add rax, {}", parser.parse_uint());
+    while !tokenizer.is_eof() {
+        if tokenizer.next_char() == '+' {
+            tokenizer.consume_char();
+            println!("    add rax, {}", tokenizer.consume_number());
             continue;
         }
-        else if parser.next_char() == '-' {
-            parser.consume_char();
-            println!("    sub rax, {}", parser.parse_uint());
+        else if tokenizer.next_char() == '-' {
+            tokenizer.consume_char();
+            println!("    sub rax, {}", tokenizer.consume_number());
             continue;
         }
-        println!("unexpected char: {}", parser.next_char());
+        println!("unexpected char: {}", tokenizer.next_char());
         return;
     }
 
@@ -39,18 +39,64 @@ fn main() {
 
 }
 
+#[test]
+fn test_func () {
+    println!("=== test start ===");
+
+    let tokens = tokenize(String::from("1+2+3"));
+    
+    println!("{:?}", tokens);
+
+}
+
 #[derive(Debug)]
-struct Parser {
+enum TokenKind {
+    Num(i32), // 整数
+    Plus,
+    Minus,
+}
+
+#[derive(Debug)]
+struct Token {
+    kind: TokenKind,
+}
+
+#[derive(Debug)]
+struct Tokenizer {
     pos: usize,
     input: String,
 }
 
-impl Parser {
+fn tokenize(input: String) -> Vec<Token> {
+    let mut tokenizer = Tokenizer{ pos: 0, input: input };
+    let mut tokens = Vec::new();
+
+    while !tokenizer.is_eof() {
+        tokenizer.consume_whitespace();
+        match tokenizer.next_char() {
+            '0'..='9' => tokens.push(Token{ kind: TokenKind::Num(tokenizer.consume_number()) }) ,
+            '+' => {
+                tokenizer.consume_char();
+                tokens.push(Token{ kind: TokenKind::Plus });
+            },
+            '-' => {
+                tokenizer.consume_char();
+                tokens.push(Token{ kind: TokenKind::Minus });
+            },
+
+            _ => panic!("invalid input"),
+        }
+    }
+    tokens
+}
+
+impl Tokenizer {
+
     fn next_char(&self) -> char {
         self.input[self.pos..].chars().next().unwrap()
     }
 
-    fn eof(&self) -> bool {
+    fn is_eof(&self) -> bool {
         self.pos >= self.input.len()
     }
 
@@ -65,7 +111,7 @@ impl Parser {
     fn consume_while<F>(&mut self, test: F) -> String
         where F: Fn(char) -> bool {
             let mut result = String::new();
-            while !self.eof() && test(self.next_char()) {
+            while !self.is_eof() && test(self.next_char()) {
                 result.push(self.consume_char());
             }
             return result;
@@ -75,12 +121,23 @@ impl Parser {
         self.consume_while(char::is_whitespace);
     }
 
-    fn parse_uint(&mut self) -> u32 {
+    // 負の値には未対応
+    fn consume_number(&mut self) -> i32 {
         let s = self.consume_while(|c| match c {
             '0'..='9' => true,
             _ => false,
         });
-        s.parse::<u32>().unwrap()
+        s.parse::<i32>().unwrap()
     }
+
+    /*
+    fn consume_operator(&mut self) -> Token {
+        match self.consume_char() {
+            '+' => Token{ kind: TokenKind::Plus },
+            '-' => Token{ kind: TokenKind::Minus },
+            _ => panic!("invalid input"),
+        }
+    }
+    */
 }
 
