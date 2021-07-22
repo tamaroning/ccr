@@ -19,7 +19,7 @@ assert() {
 
 assert 0 0
 assert 42 42
-assert 6 1+2+3
-assert 8 10+5-7
+assert 6 "1+(2+3)"
+assert 37 "1+2*(3-4)*5+6*7+8/2"
 
 echo OK

@@ -12,42 +12,27 @@ fn main() {
         return;
     }
 
-    /*
-    let mut tokenizer = Parser { pos: 0, input: argv[1].clone(),};
-
     println!(".intel_syntax noprefix");
     println!(".section __TEXT,__text");
     println!(".global _main");
     println!("_main:");
-    println!("    mov rax, {}", tokenizer.consume_number());
     
-    while !tokenizer.is_eof() {
-        if tokenizer.next_char() == '+' {
-            tokenizer.consume_char();
-            println!("    add rax, {}", tokenizer.consume_number());
-            continue;
-        }
-        else if tokenizer.next_char() == '-' {
-            tokenizer.consume_char();
-            println!("    sub rax, {}", tokenizer.consume_number());
-            continue;
-        }
-        println!("unexpected char: {}", tokenizer.next_char());
-        return;
-    }
-
+    gen(parse(argv[1].clone()));
+    
+    println!("    pop rax");
     println!("    ret");
-    */
-
+    
 }
 
 #[test]
 fn test_func () {
-    println!("=== test start ===");
+    println!("=== test starts ===");
 
-    let mut tokenizer = Parser{ pos:0, input: "1+(2*3-(4*5/6+(7-8)/9))".to_string() };
+    let mut parser = Parser{ pos:0, input: "1+(2*3-(4*5/6+(7-8)/9))".to_string() };
     
-    println!("{:?}", tokenizer.expr() );
+    gen(parser.expr());
+
+    println!("=== test finished ===");
 }
 
 #[derive(Debug)]
@@ -67,10 +52,46 @@ enum AST {
     }
 }
 
+fn gen(ast: AST) {
+    match ast {
+        AST::Node{ kind: NodeKind::Num(i), .. } => {
+            println!("    push {}", i);
+            return;
+        },
+        AST::Node{ kind: k, lhs: l, rhs: r } => {
+            gen(*l);
+            gen(*r);
+
+            println!("    pop rdi");
+            println!("    pop rax");
+
+            match k {
+                NodeKind::Plus => { println!("    add rax, rdi"); },
+                NodeKind::Minus => { println!("    sub rax, rdi"); },
+                NodeKind::Mul => { println!("    imul rax, rdi"); },
+                NodeKind::Div => {
+                    println!("    cqo");
+                    println!("    idiv rdi");
+                },
+                _ => (),  
+            };
+            println!("    push rax");
+
+            return;
+        },
+        _ => ()
+    };
+}
+
 #[derive(Debug)]
 struct Parser {
     pos: usize,
     input: String,
+}
+
+fn parse(input: String) -> AST {
+    let mut parser = Parser{ pos: 0, input: input };
+    parser.expr()
 }
 
 impl Parser {
@@ -99,7 +120,7 @@ impl Parser {
             return;
         }
         self.error_at(self.pos,
-            format_args!("'{} 'is expected, but {} is found", expected, self.next_char()));
+            format_args!("'{}' is expected, but got {}", expected, self.next_char()));
     }
 
     fn consume_while<F>(&mut self, test: F) -> String
@@ -130,7 +151,7 @@ impl Parser {
         }
     }
 
-    //エラー出力関数の作成
+    //エラー出力関数
     fn error_at(&self, loc: usize, args: fmt::Arguments) {
         println!("{}", self.input);
         print!("{}"," ".repeat(loc));
@@ -187,8 +208,7 @@ impl Parser {
 
     // primary = num | "(" expr ")"
     fn primary(&mut self) -> AST {
-        
-        // ( expr )
+        // "(" expr ")"
         if self.next_char() == '(' {
             self.consume('(');
             let ast = self.expr();
@@ -201,6 +221,6 @@ impl Parser {
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
         }
     }
-    
+
 }
 
