@@ -1,11 +1,12 @@
 # ccr : C Compiler written in Rust
-Ccr is a toy compiler of Rust. In order to understand Rust and compilers, I am developing ccr.
+Ccr is a toy compiler of Rust language, which I am making in order to understand compilers and Rust.
 
 # Usage
 
 ## Compile
 To use ccr, run the following scripts:
 ```
+$ git clone https://github.com/tamaroning/ccr
 $ cd ccr
 $ make
 ```
@@ -34,6 +35,6 @@ $ ./test.sh
 
 StepNはBibliography[0]を参照
 
-## Bibliography
+# Bibliography
 [0] 低レイヤを知りたい人のためのCコンパイラ作成入門, (https://www.sigbus.info/compilerbook#)
 

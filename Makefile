@@ -1,5 +1,4 @@
-# CCの場合は-staticを指定しなきゃいけないらしい
-#
+# CCの場合は-staticを指定する必要がある?
 
 ccr: src/main.rs
 	rustc -o ccr src/main.rs
@@ -10,5 +9,5 @@ test: ccr
 clean:
 	rm -f ccr tmp*
 
-#以下のてターゲットはファイルを生成しない
+#以下のターゲットはファイルを生成しない
 .PHONY: clean test
