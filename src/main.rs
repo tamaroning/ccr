@@ -12,7 +12,8 @@ fn main() {
         return;
     }
 
-    let mut tokenizer = Tokenizer { pos: 0, input: argv[1].clone(),};
+    /*
+    let mut tokenizer = Parser { pos: 0, input: argv[1].clone(),};
 
     println!(".intel_syntax noprefix");
     println!(".section __TEXT,__text");
@@ -36,6 +37,7 @@ fn main() {
     }
 
     println!("    ret");
+    */
 
 }
 
@@ -43,57 +45,38 @@ fn main() {
 fn test_func () {
     println!("=== test start ===");
 
-    let tokens = tokenize(String::from("1+a2+3"));
-    println!("{:?}", tokens);
-
-
+    let mut tokenizer = Parser{ pos:0, input: "1+(2*3-(4*5/6+(7-8)/9))".to_string() };
+    
+    println!("{:?}", tokenizer.expr() );
 }
 
 #[derive(Debug)]
-enum TokenKind {
-    Num(i32), // 整数
-    Plus,
-    Minus,
+enum NodeKind {
+    Plus, Minus, Mul, Div,
+    Num(i32),
+}
+
+// Abstract syntax tree
+#[derive(Debug)]
+enum AST {
+    Nil,
+    Node{
+        kind: NodeKind,
+        lhs: Box<AST>,
+        rhs: Box<AST>,
+    }
 }
 
 #[derive(Debug)]
-struct Token {
-    kind: TokenKind,
-}
-
-#[derive(Debug)]
-struct Tokenizer {
+struct Parser {
     pos: usize,
     input: String,
 }
 
-fn tokenize(input: String) -> Vec<Token> {
-    let mut tokenizer = Tokenizer{ pos: 0, input: input };
-    let mut tokens = Vec::new();
-
-    while !tokenizer.is_eof() {
-        tokenizer.consume_whitespace();
-        match tokenizer.next_char() {
-            '0'..='9' => tokens.push(Token{ kind: TokenKind::Num(tokenizer.consume_number()) }) ,
-            '+' => {
-                tokenizer.consume_char();
-                tokens.push(Token{ kind: TokenKind::Plus });
-            },
-            '-' => {
-                tokenizer.consume_char();
-                tokens.push(Token{ kind: TokenKind::Minus });
-            },
-            _ => {
-                tokenizer.error_at(tokenizer.pos, format_args!("invalid character"));
-            },
-        }
-    }
-    tokens
-}
-
-impl Tokenizer {
+impl Parser {
 
     fn next_char(&self) -> char {
+        if self.is_eof() { self.error_at(self.pos, format_args!("unexpected EOF")); }
         self.input[self.pos..].chars().next().unwrap()
     }
 
@@ -107,6 +90,16 @@ impl Tokenizer {
         let (next_pos, _) = iter.next().unwrap_or((1, ' '));
         self.pos += next_pos;
         return cur_char;
+    }
+
+    // 期待された文字を読む
+    fn consume(&mut self, expected: char) {
+        if self.next_char() == expected {
+            self.consume_char();
+            return;
+        }
+        self.error_at(self.pos,
+            format_args!("'{} 'is expected, but {} is found", expected, self.next_char()));
     }
 
     fn consume_while<F>(&mut self, test: F) -> String
@@ -128,10 +121,16 @@ impl Tokenizer {
             '0'..='9' => true,
             _ => false,
         });
-        s.parse::<i32>().unwrap()
+        match s.parse::<i32>() {
+            Ok(i) => { return i; },
+            Err(_) => {
+                self.error_at(self.pos, format_args!("number is expected"));
+                return 0;
+            }
+        }
     }
 
-    //エラー出力関数の作成 動作未確認
+    //エラー出力関数の作成
     fn error_at(&self, loc: usize, args: fmt::Arguments) {
         println!("{}", self.input);
         print!("{}"," ".repeat(loc));
@@ -141,17 +140,67 @@ impl Tokenizer {
         println!("");
 
         panic!("invalid input at character: {}", loc);
-
     }
 
-    /*
-    fn consume_operator(&mut self) -> Token {
-        match self.consume_char() {
-            '+' => Token{ kind: TokenKind::Plus },
-            '-' => Token{ kind: TokenKind::Minus },
-            _ => panic!("invalid input"),
+    // expr = mul ("+" mul | "-" mul)*
+    fn expr(&mut self) -> AST {
+        let mut ast = self.mul();
+
+        while !self.is_eof() {
+            match self.next_char() {
+                '+' => {
+                    self.consume_char();
+                    ast = AST::Node{ kind: NodeKind::Plus, 
+                        lhs: Box::new(ast), rhs: Box::new(self.mul()) }; },
+                '-' => {
+                    self.consume_char();
+                    ast = AST::Node{ kind: NodeKind::Minus, 
+                        lhs: Box::new(ast), rhs: Box::new(self.mul()) };
+                    },
+                _ => { return ast; }
+            }
+        }
+        ast
+    }
+
+    // mul = primary ("*" primary | "/" primary)*
+    fn mul(&mut self) -> AST {
+        let mut ast = self.primary();
+
+        while !self.is_eof() {
+            match self.next_char() {
+                '*' => {
+                    self.consume_char();
+                    ast = AST::Node{ kind: NodeKind::Mul, 
+                        lhs: Box::new(ast), rhs: Box::new(self.primary()) };
+                },
+                '/' => {
+                    self.consume_char();
+                    ast = AST::Node{ kind: NodeKind::Div, 
+                        lhs: Box::new(ast), rhs: Box::new(self.primary()) };
+                },
+                _ => { return ast; }
+            }
+        }
+        ast
+    }
+
+    // primary = num | "(" expr ")"
+    fn primary(&mut self) -> AST {
+        
+        // ( expr )
+        if self.next_char() == '(' {
+            self.consume('(');
+            let ast = self.expr();
+            self.consume(')');
+            return ast;
+        }
+        // num
+        else {
+            AST::Node{ kind: NodeKind::Num(self.consume_number()), 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
         }
     }
-    */
+    
 }
 
