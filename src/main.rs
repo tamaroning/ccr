@@ -52,6 +52,11 @@ enum AST {
     }
 }
 
+fn new_node_num(val: i32) -> AST {
+    AST::Node{ kind: NodeKind::Num(val), 
+        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+}
+
 fn gen(ast: AST) {
     match ast {
         AST::Node{ kind: NodeKind::Num(i), .. } => {
@@ -136,7 +141,7 @@ impl Parser {
         self.consume_while(char::is_whitespace);
     }
 
-    // 単項+/-には未対応
+    // 0以上の整数を消費
     fn consume_number(&mut self) -> i32 {
         let s = self.consume_while(|c| match c {
             '0'..='9' => true,
@@ -186,24 +191,44 @@ impl Parser {
 
     // mul = primary ("*" primary | "/" primary)*
     fn mul(&mut self) -> AST {
-        let mut ast = self.primary();
+        let mut ast = self.unary();
 
         while !self.is_eof() {
             match self.next_char() {
                 '*' => {
                     self.consume_char();
                     ast = AST::Node{ kind: NodeKind::Mul, 
-                        lhs: Box::new(ast), rhs: Box::new(self.primary()) };
+                        lhs: Box::new(ast), rhs: Box::new(self.unary()) };
                 },
                 '/' => {
                     self.consume_char();
                     ast = AST::Node{ kind: NodeKind::Div, 
-                        lhs: Box::new(ast), rhs: Box::new(self.primary()) };
+                        lhs: Box::new(ast), rhs: Box::new(self.unary()) };
                 },
                 _ => { return ast; }
             }
         }
         ast
+    }
+
+    // 単項+/-
+    fn unary(&mut self) -> AST {
+        match self.next_char() {
+            '+' => {
+                self.consume_char();
+                return new_node_num(self.consume_number());
+            },
+            '-' => {
+                self.consume_char();
+                return AST::Node{
+                    kind: NodeKind::Minus,
+                    lhs: Box::new(new_node_num(0)),
+                    rhs: Box::new(new_node_num(self.consume_number()))
+                };
+            }
+            _ => { return self.primary(); }
+        };
+
     }
 
     // primary = num | "(" expr ")"
@@ -217,8 +242,7 @@ impl Parser {
         }
         // num
         else {
-            AST::Node{ kind: NodeKind::Num(self.consume_number()), 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+            return new_node_num(self.consume_number());
         }
     }
 
