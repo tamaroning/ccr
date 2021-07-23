@@ -4,7 +4,8 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum NodeKind {
-    Plus, Minus, Mul, Div,
+    Plus, Minus, Mul, Div, // +,-,*,/
+    Eq, Ne, Le, Lt, // ==,!=,<=,<
     Num(i32),
 }
 
@@ -33,7 +34,7 @@ struct Parser {
 pub fn parse(input: String) -> AST {
     let mut parser = Parser{ pos: 0, input: input };
     parser.consume_whitespace();
-    parser.expr()
+    parser.expr();
 }
 
 impl Parser {
@@ -47,6 +48,8 @@ impl Parser {
         self.pos >= self.input.len()
     }
 
+    
+
     fn consume_char(&mut self) -> char {
         let mut iter = self.input[self.pos..].char_indices();
         let (_, cur_char) = iter.next().unwrap();
@@ -56,13 +59,21 @@ impl Parser {
     }
 
     // 期待された文字を読む
-    fn consume(&mut self, expected: char) {
+    // 期待されてない文字が発見されたらpanic
+    fn consume_expected(&mut self, expected: char) {
         if self.next_char() == expected {
             self.consume_char();
             return;
         }
         self.error_at(self.pos,
             format_args!("'{}' is expected, but got {}", expected, self.next_char()));
+    }
+
+    // 期待された文字で始まっているならば、読んでtrueを返す
+    // そうでなければfalseを返す
+    fn consume(&mut self, expected: String) -> bool {
+        if (self.input.chars[pos..])
+        true
     }
 
     fn consume_while<F>(&mut self, test: F) -> String
@@ -107,9 +118,35 @@ impl Parser {
         panic!("invalid input at character: {}", loc);
     }
 
-    // expr = mul ("+" mul | "-" mul)*
-    // 開始時に空白を指していることはない
+    // expr = equality
+    /*
     fn expr(&mut self) -> AST {
+        self.equality()
+    }
+    */
+
+    // equality = relational ("==" relational | "!=" relational)*
+    /*
+    fn equality(&mut self) -> AST {
+
+    }
+    */
+
+    // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+    /*
+    fn relational(&mut self) -> AST {
+        let mut ast = self.add();
+
+        while !self.is_eof() {
+            self.consume_whitespace();
+            break;
+        }
+    }
+    */
+
+    // add = mul ("+" mul | "-" mul)*
+    // 開始時に空白を指していることはない
+    fn add(&mut self) -> AST {
         let mut ast = self.mul();
 
         while !self.is_eof() {
@@ -126,11 +163,12 @@ impl Parser {
                     ast = AST::Node{ kind: NodeKind::Minus, 
                         lhs: Box::new(ast), rhs: Box::new(self.mul()) };
                     },
-                _ => { return ast; }
-            }
+                _ => ()
+            };
         }
         ast
     }
+
 
     // mul = primary ("*" primary | "/" primary)*
     // 開始時に空白を指していることはない
@@ -151,7 +189,7 @@ impl Parser {
                     ast = AST::Node{ kind: NodeKind::Div, 
                         lhs: Box::new(ast), rhs: Box::new(self.unary()) };
                 },
-                _ => { return ast; }
+                _ => ()
             };
         }
         ast
@@ -184,12 +222,12 @@ impl Parser {
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.next_char() == '(' {
-            self.consume('(');
+            self.consume_expected('(');
             self.consume_whitespace();
 
             let ast = self.expr();
 
-            self.consume(')');
+            self.consume_expected(')');
             self.consume_whitespace();
             
             return ast;
