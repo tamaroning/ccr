@@ -96,6 +96,7 @@ struct Parser {
 
 fn parse(input: String) -> AST {
     let mut parser = Parser{ pos: 0, input: input };
+    parser.consume_whitespace();
     parser.expr()
 }
 
@@ -147,6 +148,8 @@ impl Parser {
             '0'..='9' => true,
             _ => false,
         });
+        self.consume_whitespace();
+
         match s.parse::<i32>() {
             Ok(i) => { return i; },
             Err(_) => {
@@ -169,17 +172,21 @@ impl Parser {
     }
 
     // expr = mul ("+" mul | "-" mul)*
+    // 開始時に空白を指していることはない
     fn expr(&mut self) -> AST {
         let mut ast = self.mul();
 
         while !self.is_eof() {
+            self.consume_whitespace();
             match self.next_char() {
                 '+' => {
                     self.consume_char();
+                    self.consume_whitespace();
                     ast = AST::Node{ kind: NodeKind::Plus, 
                         lhs: Box::new(ast), rhs: Box::new(self.mul()) }; },
                 '-' => {
                     self.consume_char();
+                    self.consume_whitespace();
                     ast = AST::Node{ kind: NodeKind::Minus, 
                         lhs: Box::new(ast), rhs: Box::new(self.mul()) };
                     },
@@ -190,6 +197,7 @@ impl Parser {
     }
 
     // mul = primary ("*" primary | "/" primary)*
+    // 開始時に空白を指していることはない
     fn mul(&mut self) -> AST {
         let mut ast = self.unary();
 
@@ -197,34 +205,38 @@ impl Parser {
             match self.next_char() {
                 '*' => {
                     self.consume_char();
+                    self.consume_whitespace();
                     ast = AST::Node{ kind: NodeKind::Mul, 
                         lhs: Box::new(ast), rhs: Box::new(self.unary()) };
                 },
                 '/' => {
                     self.consume_char();
+                    self.consume_whitespace();
                     ast = AST::Node{ kind: NodeKind::Div, 
                         lhs: Box::new(ast), rhs: Box::new(self.unary()) };
                 },
                 _ => { return ast; }
-            }
+            };
         }
         ast
     }
 
     // 単項+/-
+    // 開始時に空白を指していることはない
     fn unary(&mut self) -> AST {
         match self.next_char() {
             '+' => {
                 self.consume_char();
+                self.consume_whitespace();
                 return new_node_num(self.consume_number());
             },
             '-' => {
                 self.consume_char();
+                self.consume_whitespace();
                 return AST::Node{
                     kind: NodeKind::Minus,
                     lhs: Box::new(new_node_num(0)),
-                    rhs: Box::new(new_node_num(self.consume_number()))
-                };
+                    rhs: Box::new(new_node_num(self.consume_number()))};
             }
             _ => { return self.primary(); }
         };
@@ -232,12 +244,18 @@ impl Parser {
     }
 
     // primary = num | "(" expr ")"
+    // 開始時に空白を指していることはない
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.next_char() == '(' {
             self.consume('(');
+            self.consume_whitespace();
+
             let ast = self.expr();
+
             self.consume(')');
+            self.consume_whitespace();
+            
             return ast;
         }
         // num
