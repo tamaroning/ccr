@@ -33,5 +33,8 @@ fn main() {
 fn test_func () {
     println!("=== test starts ===");
 
+    println!("{:?}", parse::parse(String::from("1 < 2 ==3 >4 ")));
+    
+
     println!("=== test finished ===");
 }
