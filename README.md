@@ -1,6 +1,9 @@
 # ccr : C Compiler written in Rust
 Ccr is a toy compiler of Rust language, which I am making in order to understand compilers and Rust.
 
+## Environment
+Linux 64bit  
+
 # Usage
 
 ## Compile
@@ -30,7 +33,7 @@ $ ./test.sh
 - [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
 - [x] Step5-2 スタックマシンへのコンパイル
 - [x] Step6 単項プラス/マイナス
-- [ ] Step7 比較演算子
+- [x] Step7 比較演算子
 - [x] Step8 ソースコード分割
 - [ ] Step9 1文字のローカル変数
 - [ ] Step10 複数文字のローカル変数

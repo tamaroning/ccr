@@ -16,13 +16,8 @@ fn main() {
         println!("invalid argument count.");
         return;
     }
-
-    println!(".intel_syntax noprefix");
-    println!(".section __TEXT,__text");
-    println!(".global _main");
-    println!("_main:");
     
-    gen::gen(parse::parse(argv[1].clone()));
+    gen::gen_assembly(parse::parse(argv[1].clone()));
     
     println!("    pop rax");
     println!("    ret");
