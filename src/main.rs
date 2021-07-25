@@ -18,7 +18,9 @@ fn main() {
         return;
     }
     
-    gen::gen_from_program(parse::parse(argv[1].clone()));
+    let tokens = tokenize::tokenize(argv[1].clone());
+    let asts = parse::parse(tokens);
+    gen::gen_from_program(asts);
     
 }
 
@@ -26,7 +28,7 @@ fn main() {
 fn test_func () {
     println!("=== test starts ===");
 
-    println!("{:?}", parse::parse(String::from("a=1; b=2;")));
+    //println!("{:?}", parse::parse(String::from("a=1; b=2;")));
     
     println!("=== test finished ===");
 }

@@ -6,18 +6,33 @@ use std::fmt;
 fn test_tokenize() {
     
     println!("{:?}", tokenize(String::from("a = \n+a * b; ")));
-    
-}
 
-#[derive(Debug)]
+}
+/*
+impl Copy for Token {
+    fn copy(&self) -> Token {
+        match self {
+            Token{ kind: TokenKind::Reserved(string), ..} => {
+                Token{ kind: TokenKind::Reserved(string.clone(), pos: self.p) }
+            },
+            Token{ kind: TokenKind::Ident(string), ..} => {
+                Token{ kind: TokenKind::Ident(string.clone(), pos: self.p) }
+            },
+            
+        }
+    }
+}
+*/
+
+#[derive(Debug, Clone)]
 pub enum TokenKind {
     Reserved(String), // keywords or punctuators
-    Num(i32), // integer literals
-    Ident(String), // identifiers
-    Eof,
+    Num(i32), // integer literals(value)
+    Ident(String), // identifiers(name)
+    Eof, // end of the 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Token {
     kind: TokenKind, // トークンの種類
     pos: usize, // トークンの開始位置
@@ -76,6 +91,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // invalid tokens
         tokenizer.error_at(tokenizer.pos, format_args!("invalid token"));
     }
+    tokens.push(Token{ kind: TokenKind::Eof, pos: tokenizer.pos });
     tokens
 }
 
@@ -114,7 +130,7 @@ impl Tokenizer {
         self.input[self.pos..].starts_with(s)
     }
 
-    // 条件が満たされる間だけ文字を消費し続ける
+    // 条件が満たされる間だけ文字を読む
     fn read_while<F>(&mut self, test: F) -> String
         where F: Fn(char) -> bool {
             let mut result = String::new();
@@ -124,12 +140,12 @@ impl Tokenizer {
             return result;
     }
 
-    // 空白と改行を消費する
+    // 空白と改行を読む
     fn read_whitespace(&mut self) {
         self.read_while(char::is_whitespace);
     }
 
-    // 0以上の整数を消費する
+    // 非負整数を読む
     fn read_number(&mut self) -> i32 {
         let s = self.read_while(|c| match c {
             '0'..='9' => true,
@@ -145,7 +161,7 @@ impl Tokenizer {
         };
     }
 
-    //エラー出力関数
+    //tokenize時のエラーを出力する
     fn error_at(&self, loc: usize, args: fmt::Arguments) {
         println!("{}", self.input);
         print!("{}"," ".repeat(loc));
