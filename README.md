@@ -1,8 +1,10 @@
 # ccr : C Compiler written in Rust
-Ccr is a toy compiler of Rust language, which I am making in order to understand compilers and Rust.
+Ccr is a toy C compiler written in Rust language, which I am making in order to understand compilers and Rust.  
+Ccr is not so fast, but the source code is easy for beginners to read.  
 
 ## Environment
 Linux 64bit  
+Mac OSX dosen't implement ```movzb```, so if you use ccr on OSX, source needs to be changed a bit.
 
 # Usage
 
@@ -29,9 +31,7 @@ $ ./test.sh
 
 # Todo
 
-- [ ] Refactoring: TokenizeとParseの処理を分ける  
-- [ ] コード生成時に検出されるエラー出力の強化  
-  
+## Step 
 - [x] Step3 簡単な式(例: 3+12-5)の結果を出力する
 - [x] Step4 エラーメッセージの改良
 - [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
@@ -47,8 +47,12 @@ $ ./test.sh
 - [ ] Step14 関数呼び出し
 - [ ] Step15 関数定義
 
-StepNはBibliography[0]を参照
+refs: Bibliography[0]
+
+##  Refactoring and improvement
+- [ ] Refactoring: TokenizeとParseの処理を分ける  
+- [ ] コード生成時に検出されるエラー出力の強化 
 
 # Bibliography
-[0] 低レイヤを知りたい人のためのCコンパイラ作成入門, (https://www.sigbus.info/compilerbook#)
+[0] Rui Ueyama, '低レイヤを知りたい人のためのCコンパイラ作成入門', (https://www.sigbus.info/compilerbook#)
 
