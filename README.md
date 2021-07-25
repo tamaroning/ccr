@@ -4,7 +4,7 @@ Ccr is not so fast, but the source code is easy for beginners to read.
 
 ## Environment
 Linux 64bit  
-Mac OSX dosen't implement ```movzb```, so if you use ccr on OSX, source needs to be changed a bit.
+Mac OSX dosen't implement ```movzb```, so if you want to use ccr on OSX, source needs to be changed a bit.
 
 # Usage
 

@@ -5,6 +5,7 @@
 use std::env;
 //use std::fmt;
 
+mod tokenize;
 mod parse;
 mod gen;
 

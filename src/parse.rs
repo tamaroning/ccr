@@ -1,6 +1,7 @@
 // parse.rs
 
 use std::fmt;
+use crate::tokenize;
 
 #[test]
 fn test_parse() {
