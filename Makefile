@@ -1,6 +1,6 @@
 # CCの場合は-staticを指定する必要がある?
 
-ccr: src/main.rs
+ccr: src/main.rs src/gen.rs src/parse.rs
 	rustc -o ccr src/main.rs
 
 test: ccr

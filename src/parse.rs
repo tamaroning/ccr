@@ -9,15 +9,17 @@ fn test_parse() {
 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NodeKind {
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
-    Num(i32),
+    Assign, // =
+    Lvar{name: String, offset: usize}, // 一文字のローカル変数(変数名, rbpからのオフセット)
+    Num(i32), // 整数
 }
 
 // Abstract syntax tree
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AST {
     Nil,
     Node{
@@ -38,10 +40,9 @@ struct Parser {
     input: String,
 }
 
-pub fn parse(input: String) -> AST {
+pub fn parse(input: String) -> Vec<AST> {
     let mut parser = Parser{ pos: 0, input: input };
-    parser.consume_whitespace();
-    parser.expr()
+    parser.program()
 }
 
 impl Parser {
@@ -136,9 +137,42 @@ impl Parser {
         panic!("invalid input at character: {}", loc);
     }
 
-    // expr = equality
+    // program = stmt*
+    fn program(&mut self) -> Vec<AST> {
+        let mut ret = Vec::new();
+        loop {
+            self.consume_whitespace(); // stmtの先頭の空白文字を消費する
+            if self.is_eof() { break; }
+            ret.push(self.stmt());
+        }
+        ret
+    }
+
+    // stmt = expr ";"
+    fn stmt(&mut self) -> AST {
+        let ast = self.expr();
+        self.consume_expected(";");
+        self.consume_whitespace();
+        ast
+    }
+
+    // expr = assign
     fn expr(&mut self) -> AST {
-        self.equality()
+        self.assign()
+    }
+
+    // assign = equality ("=" assign)?
+    fn assign(&mut self) -> AST {
+        let mut ast = self.equality();
+        while !self.is_eof() {
+            if self.consume("=") {
+                self.consume_whitespace();
+                ast = AST::Node{ kind: NodeKind::Assign, lhs: Box::new(ast), rhs: Box::new(self.assign()) };
+            } else {
+                break;
+            }
+        }
+        ast
     }
     
     // equality = relational ("==" relational | "!=" relational)*
@@ -255,25 +289,46 @@ impl Parser {
         };
     }
 
-    // primary = num | "(" expr ")"
+    // primary = num | ident | "(" expr ")"
     // 開始時に空白を指していることはない
     fn primary(&mut self) -> AST {
         // "(" expr ")"
-        if self.next_char() == '(' {
-            self.consume_expected("(");
-            self.consume_whitespace();
+        match self.next_char() {
+            '(' => {
+                self.consume_expected("(");
+                self.consume_whitespace();
 
-            let ast = self.expr();
+                let ast = self.expr();
 
-            self.consume_expected(")");
-            self.consume_whitespace();
-            
-            return ast;
-        }
-        // num
-        else {
-            return new_node_num(self.consume_number());
-        }
+                self.consume_expected(")");
+                self.consume_whitespace();
+                
+                return ast;
+            },
+
+            'a'..='z' => {
+                return self.ident();
+            }
+            // num
+            _ => {
+                return new_node_num(self.consume_number());
+            }
+        };
+    }
+
+    // 一文字のローカル変数
+    fn ident(&mut self) -> AST {
+        match self.next_char() {
+            'a'..='z' => {
+                let name: char = self.consume_char();
+                return AST::Node{ kind: NodeKind::Lvar{ name: name.to_string(), offset: (name as usize - 'a' as usize) * 8 },
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            }
+            _ => {
+                self.error_at(self.pos, format_args!("variables is expected"));
+                return AST::Nil;
+            }
+        };
     }
 
 }

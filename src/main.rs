@@ -17,10 +17,7 @@ fn main() {
         return;
     }
     
-    gen::gen_assembly(parse::parse(argv[1].clone()));
-    
-    println!("    pop rax");
-    println!("    ret");
+    gen::gen_from_program(parse::parse(argv[1].clone()));
     
 }
 
@@ -28,8 +25,7 @@ fn main() {
 fn test_func () {
     println!("=== test starts ===");
 
-    println!("{:?}", parse::parse(String::from("1 < 2 ==3 >4 ")));
+    println!("{:?}", parse::parse(String::from("a=1; b=2;")));
     
-
     println!("=== test finished ===");
 }

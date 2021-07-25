@@ -16,7 +16,7 @@ $ make
 
 ## Run
 ```
-$ ./ccr "[expr]" > tmp.s
+$ ./ccr "[program(text)]" > tmp.s
 $ cc -o tmp tmp.s
 $ ./tmp
 $ echo $?
@@ -28,6 +28,10 @@ $ ./test.sh
 ```
 
 # Todo
+
+- [ ] Refactoring: TokenizeとParseの処理を分ける  
+- [ ] コード生成時に検出されるエラー出力の強化  
+  
 - [x] Step3 簡単な式(例: 3+12-5)の結果を出力する
 - [x] Step4 エラーメッセージの改良
 - [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
@@ -35,14 +39,13 @@ $ ./test.sh
 - [x] Step6 単項プラス/マイナス
 - [x] Step7 比較演算子
 - [x] Step8 ソースコード分割
-- [ ] Step9 1文字のローカル変数
+- [x] Step9 1文字のローカル変数
 - [ ] Step10 複数文字のローカル変数
 - [ ] Step11 return文
 - [ ] Step12 制御構文
 - [ ] Step13 {}ブロック
 - [ ] Step14 関数呼び出し
 - [ ] Step15 関数定義
-
 
 StepNはBibliography[0]を参照
 
