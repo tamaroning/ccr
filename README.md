@@ -50,7 +50,9 @@ $ ./test.sh
 refs: Bibliography[0]
 
 ##  Refactoring and improvement
-- [ ] Refactoring: TokenizeとParseの処理を分ける  
+- [x] Refactoring: TokenizeとParseの処理を分ける  
+- [ ] .cファイルを読み込んで.sファイルを吐き出せるようにする
+- [ ] 標準出力に実行中の情報を出力できるようにする
 - [ ] コード生成時に検出されるエラー出力の強化 
 
 # Bibliography

@@ -1,13 +1,19 @@
 // parse.rs
 
 use std::fmt;
+use crate::tokenize::tokenize;
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
 
 
 #[test]
 fn test_parse() {
+    let tokens = tokenize(String::from("a = 4+2;"));
+    println!("{:?}", tokens);
 
+    let ast = parse(tokens);
+
+    println!("{:?}", ast);
 
 }
 
@@ -51,10 +57,8 @@ impl Parser {
 
     // 現在のトークンを読む(読み進めない)
     fn cur_token(&self) -> Token {
-        if self.is_eof() {
-            panic!("unexpected EOF");
-        }
-        self.tokens[self.pos]
+        //println!("pos: {}, cur_token: {:?}",self.pos, self.tokens[self.pos]);
+        self.tokens[self.pos].clone()
     }
 
     // 現在のトークンがEOFかどうか返す
@@ -80,6 +84,7 @@ impl Parser {
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
+        //println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -88,7 +93,7 @@ impl Parser {
     fn consume(&mut self, string: &str) -> bool {
         match self.cur_token() {
             Token{ kind: TokenKind::Reserved(t) ,.. } if t == string  => {
-                self.pos += 1;
+                self.consume_any();
                 true
             },
             _ => false,
@@ -97,7 +102,7 @@ impl Parser {
 
     // 現在のトークンは指定された文字列のreservedトークンであるに違いないので読み進める
     fn consume_expected(&mut self, string: &str) {
-        if self.consume(string) {
+        if !self.consume(string) {
             panic!("unexpected token");
         }
     }
@@ -129,9 +134,12 @@ impl Parser {
     // program = stmt*
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
+        let mut i :usize = 0;
         loop {
+            //println!("statement[{}]", i);
             if self.is_eof() { break; }
             ret.push(self.stmt());
+            i += 1;
         }
         ret
     }
@@ -239,7 +247,6 @@ impl Parser {
     // unary = ("+" | "-")? primary
     // 開始時に空白を指していることはない
     fn unary(&mut self) -> AST {
-
         if self.consume("+") {
             return self.primary();
         } else if self.consume("-") {

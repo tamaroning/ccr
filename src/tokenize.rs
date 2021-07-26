@@ -32,9 +32,9 @@ pub enum TokenKind {
     Eof, // end of the 
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Token {
-    kind: TokenKind, // トークンの種類
+    pub kind: TokenKind, // トークンの種類
     pos: usize, // トークンの開始位置
 }
 

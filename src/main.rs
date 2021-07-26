@@ -14,14 +14,18 @@ fn main() {
     let argc: usize = argv.len();
 
     if argc != 2 {
-        println!("invalid argument count.");
-        return;
+        panic!("invalid argument count.");
     }
     
+    //println!("Tokenizing...");
     let tokens = tokenize::tokenize(argv[1].clone());
+    //println!("Tokenizing...done");
+
+    //println!("parsing...");
     let asts = parse::parse(tokens);
-    gen::gen_from_program(asts);
+    //println!("Parsing...done");
     
+    gen::gen_from_program(asts);
 }
 
 #[test]
