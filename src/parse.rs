@@ -1,19 +1,12 @@
 // parse.rs
 
-use std::fmt;
-use crate::tokenize::tokenize;
+//use std::fmt;
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
 
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("a = 4+2;"));
-    println!("{:?}", tokens);
-
-    let ast = parse(tokens);
-
-    println!("{:?}", ast);
 
 }
 
@@ -57,7 +50,6 @@ impl Parser {
 
     // 現在のトークンを読む(読み進めない)
     fn cur_token(&self) -> Token {
-        //println!("pos: {}, cur_token: {:?}",self.pos, self.tokens[self.pos]);
         self.tokens[self.pos].clone()
     }
 
@@ -134,12 +126,12 @@ impl Parser {
     // program = stmt*
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
-        let mut i :usize = 0;
+        //let mut i :usize = 0;
         loop {
             //println!("statement[{}]", i);
             if self.is_eof() { break; }
             ret.push(self.stmt());
-            i += 1;
+            //i += 1;
         }
         ret
     }

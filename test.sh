@@ -4,15 +4,21 @@ assert() {
     expected="$1"
     input="$2"
 
-    ./ccr "$input" > tmp.s
+    echo "------- Input -------"
+    # echo "$input"
+    #echo "EOF"
+
+    echo "$input" > tmp.src
+    ./ccr tmp.src
     cc -o tmp tmp.s
     ./tmp
     actual="$?"
 
+    echo "------- Result -------"
     if [ "$actual" = "$expected" ]; then
-        echo "$input => $actual"
+        echo "Got $actual as expected"
     else
-        echo "$input => $expected expected, but got $actual"
+        echo "$expected is expected, but got $actual"
         exit 1
     fi
 }

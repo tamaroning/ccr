@@ -17,21 +17,28 @@ $ make
 ```
 
 ## Run
+Compile text(.c) file:  
 ```
-$ ./ccr "[program(text)]" > tmp.s
+$ ./ccr [file path]
+```
+By default, the assembly is written to tmp.s.  
+  
+Then compile tmp.s into executable files:  
+```
 $ cc -o tmp tmp.s
 $ ./tmp
 $ echo $?
 ```
 
 ## Test
+You can run test.sh to execute the demo:  
 ```
 $ ./test.sh
 ```
 
 # Todo
 
-## Step 
+## Steps  
 - [x] Step3 簡単な式(例: 3+12-5)の結果を出力する
 - [x] Step4 エラーメッセージの改良
 - [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
@@ -47,11 +54,11 @@ $ ./test.sh
 - [ ] Step14 関数呼び出し
 - [ ] Step15 関数定義
 
-refs: Bibliography[0]
+refs: Bib[0]
 
 ##  Refactoring and improvement
 - [x] Refactoring: TokenizeとParseの処理を分ける  
-- [ ] .cファイルを読み込んで.sファイルを吐き出せるようにする
+- [x] .cファイルを読み込んで.sファイルを吐き出せるようにする
 - [ ] 標準出力に実行中の情報を出力できるようにする
 - [ ] コード生成時に検出されるエラー出力の強化 
 

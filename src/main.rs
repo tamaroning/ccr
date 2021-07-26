@@ -2,6 +2,9 @@
 
 #![allow(dead_code)]
 
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use std::env;
 //use std::fmt;
 
@@ -16,23 +19,44 @@ fn main() {
     if argc != 2 {
         panic!("invalid argument count.");
     }
-    
-    //println!("Tokenizing...");
-    let tokens = tokenize::tokenize(argv[1].clone());
-    //println!("Tokenizing...done");
 
-    //println!("parsing...");
+    // 入力ファイルを準備する
+    let src_path = Path::new(&argv[1]);
+    let src_display = src_path.display();
+
+    // pathを読み込み専用で開く
+    let mut src_file = match File::open(&src_path) {
+        Err(why) => panic!("couldn't open {}: {}", src_display, why.to_string()),
+        Ok(file) => file,
+    };
+
+    // ファイルの中身を読み込む
+    let mut src_string = String::new();
+    match src_file.read_to_string(&mut src_string) {
+        Err(why) => panic!("couldn't read {}: {}", src_display, why.to_string()),
+        Ok(_) => print!("{} contains:\n{}", src_display, src_string),
+    }
+
+    // ソースコードをトークナイズする
+    print!("Tokenizing input...");
+    let tokens = tokenize::tokenize(src_string);
+    println!("done");
+
+    // トークンの配列からASTを作成
+    print!("parsing tokens...");
     let asts = parse::parse(tokens);
-    //println!("Parsing...done");
+    println!("done");
     
-    gen::gen_from_program(asts);
+    // ASTからアセンブリを生成して,tmp.sに書き込む
+    print!("Generating assembly...");
+    gen::gen_from_program(asts, "tmp.s");
+    println!("done");
 }
 
 #[test]
 fn test_func () {
     println!("=== test starts ===");
 
-    //println!("{:?}", parse::parse(String::from("a=1; b=2;")));
     
     println!("=== test finished ===");
 }

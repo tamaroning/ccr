@@ -1,35 +1,42 @@
 // gen.rs
 
+use std::fs::File;
+use std::io::{Write, BufWriter};
+
 use crate::parse::AST;
 use crate::parse::NodeKind;
 
 // ASTの配列からアセンブリ全体を生成する
-pub fn gen_from_program(vec: Vec<AST>) {
-    println!(".intel_syntax noprefix");
-    println!(".global main");
-    println!("main:");
-    println!("    push rbp");
-    println!("    mov rbp, rsp");
-    println!("    sub rsp, 208");
+pub fn gen_from_program(vec: Vec<AST>, fname: &str) {
+
+    // 出力ファイルを用意する
+    let mut f = BufWriter::new(File::create(fname).unwrap());
+
+    writeln!(f, ".intel_syntax noprefix").unwrap();
+    writeln!(f, ".global main").unwrap();
+    writeln!(f, "main:").unwrap();
+    writeln!(f, "    push rbp").unwrap();
+    writeln!(f, "    mov rbp, rsp").unwrap();
+    writeln!(f, "    sub rsp, 208").unwrap();
 
     for elm in vec {
-        gen_from_ast(elm);
+        gen_from_ast(&mut f, elm);
         // 式の評価結果として一つ値が残る
-        println!("    pop rax");
+        writeln!(f, "    pop rax").unwrap();
     }
 
-    println!("    mov rsp, rbp");
-    println!("    pop rbp");
-    println!("    ret");
+    writeln!(f, "    mov rsp, rbp").unwrap();
+    writeln!(f, "    pop rbp").unwrap();
+    writeln!(f, "    ret").unwrap();
 }
 
 // 左辺値をスタックトップに詰むアセンブリを出力
-fn gen_lval(ast: AST) {
+fn gen_lval(f: &mut BufWriter<File>, ast: AST) {
     match ast {
         AST::Node{ kind: NodeKind::Lvar{offset: ofs, ..}, .. } => {
-            println!("    mov rax, rbp");
-            println!("    sub rax, {}", ofs);
-            println!("    push rax;")
+            writeln!(f, "    mov rax, rbp").unwrap();
+            writeln!(f, "    sub rax, {}", ofs).unwrap();
+            writeln!(f, "    push rax;").unwrap();
         },
         _ => {
             panic!("代入の左辺値が変数ではありません");
@@ -38,7 +45,7 @@ fn gen_lval(ast: AST) {
 }
 
 // 一つのASTからアセンブリを生成する
-pub fn gen_from_ast(ast: AST) {
+pub fn gen_from_ast(f: &mut BufWriter<File>, ast: AST) {
 
     match ast.clone() {
 
@@ -46,65 +53,65 @@ pub fn gen_from_ast(ast: AST) {
             
             match k {
                 NodeKind::Num(i) => {
-                    println!("    push {}", i);
+                    writeln!(f, "    push {}", i).unwrap();
                     return;
                 },
                 NodeKind::Lvar{ .. } => {
-                    gen_lval(ast);
-                    println!("    pop rax");
-                    println!("    mov rax, [rax]");
-                    println!("    push rax");
+                    gen_lval(f, ast);
+                    writeln!(f, "    pop rax").unwrap();
+                    writeln!(f, "    mov rax, [rax]").unwrap();
+                    writeln!(f, "    push rax").unwrap();
                     return;
                 }
                 NodeKind::Assign => {
-                    gen_lval(*l);
-                    gen_from_ast(*r);
-                    println!("    pop rdi");
-                    println!("    pop rax");
-                    println!("    mov [rax], rdi");
-                    println!("    push rdi");
+                    gen_lval(f, *l);
+                    gen_from_ast(f, *r);
+                    writeln!(f, "    pop rdi").unwrap();
+                    writeln!(f, "    pop rax").unwrap();
+                    writeln!(f, "    mov [rax], rdi").unwrap();
+                    writeln!(f, "    push rdi").unwrap();
                     return;
                 }
                 _ => (),
             };
             
-            gen_from_ast(*l);
-            gen_from_ast(*r);
+            gen_from_ast(f, *l);
+            gen_from_ast(f, *r);
 
-            println!("    pop rdi");
-            println!("    pop rax");
+            writeln!(f, "    pop rdi").unwrap();
+            writeln!(f, "    pop rax").unwrap();
 
             match k {
-                NodeKind::Plus => { println!("    add rax, rdi"); },
-                NodeKind::Minus => { println!("    sub rax, rdi"); },
-                NodeKind::Mul => { println!("    imul rax, rdi"); },
+                NodeKind::Plus => { writeln!(f, "    add rax, rdi").unwrap(); },
+                NodeKind::Minus => { writeln!(f, "    sub rax, rdi").unwrap(); },
+                NodeKind::Mul => { writeln!(f, "    imul rax, rdi").unwrap(); },
                 NodeKind::Div => {
-                    println!("    cqo");
-                    println!("    idiv rdi");
+                    writeln!(f, "    cqo").unwrap();
+                    writeln!(f, "    idiv rdi").unwrap();
                 },
                 NodeKind::Eq => {
-                    println!("    cmp rax, rdi");
-                    println!("    sete al");
-                    println!("    movzb rax, al");
+                    writeln!(f, "    cmp rax, rdi").unwrap();
+                    writeln!(f, "    sete al").unwrap();
+                    writeln!(f, "    movzb rax, al").unwrap();
                 },
                 NodeKind::Ne => {
-                    println!("    cmp rax, rdi");
-                    println!("    setne al");
-                    println!("    movzb rax, al");
+                    writeln!(f, "    cmp rax, rdi").unwrap();
+                    writeln!(f, "    setne al").unwrap();
+                    writeln!(f, "    movzb rax, al").unwrap();
                 },
                 NodeKind::Lt => {
-                    println!("    cmp rax, rdi");
-                    println!("    setl al");
-                    println!("    movzb rax, al");
+                    writeln!(f, "    cmp rax, rdi").unwrap();
+                    writeln!(f, "    setl al").unwrap();
+                    writeln!(f, "    movzb rax, al").unwrap();
                 },
                 NodeKind::Le => {
-                    println!("    cmp rax, rdi");
-                    println!("    setle al");
-                    println!("    movzb rax, al");
+                    writeln!(f, "    cmp rax, rdi").unwrap();
+                    writeln!(f, "    setle al").unwrap();
+                    writeln!(f, "    movzb rax, al").unwrap();
                 },
                 _ => (),  
             };
-            println!("    push rax");
+            writeln!(f, "    push rax").unwrap();
 
             return;
         },
