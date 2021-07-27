@@ -10,7 +10,7 @@ use std::env;
 
 mod tokenize;
 mod parse;
-mod gen;
+mod codegen;
 
 fn main() {
     let argv: Vec<String> = env::args().collect();
@@ -38,18 +38,18 @@ fn main() {
     }
 
     // ソースコードをトークナイズする
-    print!("Tokenizing input...");
+    println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
     println!("done");
 
     // トークンの配列からASTを作成
-    print!("parsing tokens...");
+    println!("parsing tokens...");
     let asts = parse::parse(tokens);
     println!("done");
     
     // ASTからアセンブリを生成して,tmp.sに書き込む
-    print!("Generating assembly...");
-    gen::gen_from_program(asts, "tmp.s");
+    println!("Generating assembly...");
+    codegen::codegen(asts, "tmp.s");
     println!("done");
 }
 

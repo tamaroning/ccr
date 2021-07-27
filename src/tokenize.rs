@@ -4,25 +4,8 @@ use std::fmt;
 
 #[test]
 fn test_tokenize() {
-    
-    println!("{:?}", tokenize(String::from("a = \n+a * b; ")));
 
 }
-/*
-impl Copy for Token {
-    fn copy(&self) -> Token {
-        match self {
-            Token{ kind: TokenKind::Reserved(string), ..} => {
-                Token{ kind: TokenKind::Reserved(string.clone(), pos: self.p) }
-            },
-            Token{ kind: TokenKind::Ident(string), ..} => {
-                Token{ kind: TokenKind::Ident(string.clone(), pos: self.p) }
-            },
-            
-        }
-    }
-}
-*/
 
 #[derive(Debug, Clone)]
 pub enum TokenKind {
@@ -82,7 +65,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
             '!'|'"'|'#'|'$'|'%'|'&'|'('|')'|'*'|'+'|','|'-'|'.'|'/'|':'|';'|'<'|'='|
                     '>'|'?'|'@'|'['|'\\'|']'|'^'|'_'|'`'|'{'|'|'|'}'|'~' => {
                 tokens.push(Token{ kind: TokenKind::Reserved(tokenizer.read_nchars(1))
-                    , pos: tokenizer.pos });
+                        , pos: tokenizer.pos });
                 continue;
             },
             _ => (),

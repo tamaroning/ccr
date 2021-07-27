@@ -22,14 +22,15 @@ pub enum NodeKind {
 // Abstract syntax tree
 #[derive(Debug, Clone)]
 pub enum AST {
-    Nil,
+    Nil, 
     Node{
-        kind: NodeKind,
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        kind: NodeKind, // ノードの種類
+        lhs: Box<AST>, // 左辺値
+        rhs: Box<AST>, // 右辺値
     }
 }
 
+// i32からNumノードを作成する
 fn new_node_num(val: i32) -> AST {
     AST::Node{ kind: NodeKind::Num(val), 
         lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
@@ -47,13 +48,12 @@ pub fn parse(tokens: Vec<Token>) -> Vec<AST> {
 }
 
 impl Parser {
-
     // 現在のトークンを読む(読み進めない)
     fn cur_token(&self) -> Token {
         self.tokens[self.pos].clone()
     }
 
-    // 現在のトークンがEOFかどうか返す
+    // 現在のトークンがEOFか判定する
     fn is_eof(&self) -> bool {
         match self.cur_token() {
             Token{ kind: TokenKind::Eof ,.. } => {
@@ -63,6 +63,7 @@ impl Parser {
         }
     }
 
+    // 現在のトークンがNumか判定する
     fn is_num(&self) -> bool {
         match self.cur_token() {
             Token{ kind: TokenKind::Num(_) ,.. } => {
@@ -123,15 +124,14 @@ impl Parser {
     }
     */
 
+    // EBNFによる文法の生成
     // program = stmt*
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
-        //let mut i :usize = 0;
         loop {
             //println!("statement[{}]", i);
             if self.is_eof() { break; }
             ret.push(self.stmt());
-            //i += 1;
         }
         ret
     }
@@ -197,7 +197,6 @@ impl Parser {
     }
     
     // add = mul ("+" mul | "-" mul)*
-    // 開始時に空白を指していることはない
     fn add(&mut self) -> AST {
         let mut ast = self.mul();
 
@@ -217,7 +216,6 @@ impl Parser {
 
 
     // mul = unary ("*" unary | "/" unary)*
-    // 開始時に空白を指していることはない
     fn mul(&mut self) -> AST {
         let mut ast = self.unary();
 
@@ -235,9 +233,7 @@ impl Parser {
         ast
     }
 
-    // 単項+/-
     // unary = ("+" | "-")? primary
-    // 開始時に空白を指していることはない
     fn unary(&mut self) -> AST {
         if self.consume("+") {
             return self.primary();
@@ -250,7 +246,6 @@ impl Parser {
     }
 
     // primary = num | ident | "(" expr ")"
-    // 開始時に空白を指していることはない
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
