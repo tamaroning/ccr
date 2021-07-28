@@ -48,7 +48,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // identifiers
         match tokenizer.next_char() {
             'a'..='z' => {
-                tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_nchars(1)), pos: tokenizer.pos });
+                tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
                 continue;
             },
             _ => (),
@@ -142,6 +142,18 @@ impl Tokenizer {
                 return 0;
             }
         };
+    }
+
+    fn read_ident(&mut self) -> String {
+        match self.next_char() {
+            'a'..='z' => (),
+            _ => panic!("variable name must begin with A-z"),
+        };
+        let s = self.read_while(|c| match c {
+            'a'..='z' | '0'..='9' => true,
+            _ => false,
+        });
+        s
     }
 
     //tokenize時のエラーを出力する

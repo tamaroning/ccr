@@ -23,9 +23,11 @@ assert() {
     fi
 }
 
-assert 6 'a = 1;
-b = 9/3-1;
-c = -1 * (4-7);
-d = a + b + c;'
+assert 6 '
+three = 3;
+one = 1;
+two = three - one;
+six = three + one * two;
+'
 
 echo OK

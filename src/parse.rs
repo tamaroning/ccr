@@ -1,6 +1,8 @@
 // parse.rs
 
 //use std::fmt;
+use std::collections::HashMap;
+
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
 
@@ -40,10 +42,12 @@ fn new_node_num(val: i32) -> AST {
 struct Parser {
     tokens: Vec<Token>, // Tokenリスト
     pos: usize, // 現在のtokenのインデックス
+    offset: usize,
+    locals: HashMap<String, usize>, // ローカル変数<name, offset>
 }
 
 pub fn parse(tokens: Vec<Token>) -> Vec<AST> {
-    let mut parser = Parser{ pos: 0, tokens: tokens };
+    let mut parser = Parser{ pos: 0, tokens: tokens, offset: 0, locals: HashMap::new() };
     parser.program()
 }
 
@@ -266,10 +270,23 @@ impl Parser {
     // 一文字のローカル変数
     fn ident(&mut self) -> AST {
         match self.consume_any() {
-            Token{ kind: TokenKind::Ident(name), .. } => {
-                let name_chars: Vec<char> = name.chars().collect();
-                return AST::Node{ kind: NodeKind::Lvar{ name: name.to_string(), offset: (name_chars[0] as usize - 'a' as usize) * 8 },
+            Token{ kind: TokenKind::Ident(var_name), .. } => {
+                match self.locals.get(&var_name) {
+                    // 変数名がすでに登録済み
+                    Some(ofs) => {
+                        return AST::Node{ kind: NodeKind::Lvar{ name: var_name.clone(), offset: *ofs },
                     lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                    },
+                    // 変数名が未登録
+                    None => {
+                        self.locals.insert(var_name.clone(), self.offset);
+                        let ret = AST::Node{ kind: NodeKind::Lvar{ name: var_name.clone(), offset: self.offset },
+                        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                        println!("{} offset: {}", var_name, self.offset);
+                        self.offset += 8;
+                        return ret;
+                    },
+                };
             },
             _ => {
                 panic!("variable is expected");

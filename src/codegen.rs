@@ -17,6 +17,8 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
     writeln!(f, "main:").unwrap();
     writeln!(f, "    push rbp").unwrap();
     writeln!(f, "    mov rbp, rsp").unwrap();
+    
+    // スタックフレームを用意する
     writeln!(f, "    sub rsp, 208").unwrap();
 
     // vecの各要素(stmt)からアセンブリを生成する。
@@ -26,6 +28,7 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
         writeln!(f, "    pop rax").unwrap();
     }
 
+    // スタックフレームを戻す
     writeln!(f, "    mov rsp, rbp").unwrap();
     writeln!(f, "    pop rbp").unwrap();
     writeln!(f, "    ret").unwrap();

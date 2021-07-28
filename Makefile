@@ -8,6 +8,7 @@ test: ccr
 
 clean:
 	rm -f ccr tmp*
+	rm -f ccr a.out
 
 #以下のターゲットはファイルを生成しない
 .PHONY: clean test
