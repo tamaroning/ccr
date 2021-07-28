@@ -27,7 +27,10 @@ assert 6 '
 three = 3;
 one = 1;
 two = three - one;
-six = three + one * two;
+six = three + one + two;
+return six;
 '
+
+
 
 echo OK

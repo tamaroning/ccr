@@ -17,7 +17,7 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
     writeln!(f, "main:").unwrap();
     writeln!(f, "    push rbp").unwrap();
     writeln!(f, "    mov rbp, rsp").unwrap();
-    
+
     // スタックフレームを用意する
     writeln!(f, "    sub rsp, 208").unwrap();
 
@@ -89,6 +89,14 @@ pub fn gen_expr(f: &mut BufWriter<File>, ast: AST) {
                     writeln!(f, "    push rdi").unwrap();
                     return;
                 }
+                NodeKind::Return => {
+                    gen_expr(f, *l); // returnノードのrhsはNilを指す
+                    writeln!(f, "       pop rax").unwrap();
+                    writeln!(f, "       mov rsp, rbp").unwrap();
+                    writeln!(f, "       pop rbp").unwrap();
+                    writeln!(f, "       ret").unwrap(); // 簡単のためにretが複数出力されることがある
+                    return;
+                },
                 _ => (),
             };
             

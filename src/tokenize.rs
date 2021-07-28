@@ -4,14 +4,19 @@ use std::fmt;
 
 #[test]
 fn test_tokenize() {
+    let tokens = tokenize(String::from("return 4;"));
+    println!("{:?}", tokens);
 
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub enum TokenKind {
     Reserved(String), // keywords or punctuators
     Num(i32), // integer literals(value)
     Ident(String), // identifiers(name)
+    
+    Return,
+    
     Eof, // end of the 
 }
 
@@ -45,14 +50,21 @@ pub fn tokenize(input: String) -> Vec<Token> {
             _ => (),
         };
 
-        // identifiers
-        match tokenizer.next_char() {
-            'a'..='z' => {
+        // identifiers 変数命
+        if tokenizer.is_al()  {
+            // return
+            if tokenizer.starts_with("return ") {
+                tokenizer.read_nchars(7);
+                tokenizer.read_whitespace();
+                tokens.push(Token{ kind: TokenKind::Return, pos: tokenizer.pos });
+                continue;
+            } else {
+                // 変数名
                 tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
                 continue;
-            },
-            _ => (),
-        };
+            }
+        }
+
 
         // punctuators
         if tokenizer.starts_with("==") || tokenizer.starts_with("!=") ||
@@ -80,7 +92,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
 
 impl Tokenizer {
 
-    // 先頭の一文字にアクセスする
+    // 先頭の文字にアクセスする
     fn next_char(&self) -> char {
         if self.is_eof() { self.error_at(self.pos, format_args!("unexpected EOF")); }
         self.input[self.pos..].chars().next().unwrap()
@@ -88,6 +100,21 @@ impl Tokenizer {
 
     fn is_eof(&self) -> bool {
         self.pos >= self.input.len()
+    }
+
+    fn is_al(&self) -> bool {
+        match self.next_char() {
+            'a'..='z'|'A'..='Z'|'_' => true,
+            _ => false,
+        }
+    }
+
+    // 先頭の文字がトークンを構成する文字(英数字or_)かを返す
+    fn is_alnum(&self) -> bool {
+        match self.next_char() {
+            'a'..='z'|'A'..='Z'|'0'..='9'|'_' => true,
+            _ => false,
+        }
     }
 
     // 1文字読み進める
@@ -144,13 +171,11 @@ impl Tokenizer {
         };
     }
 
+    // ローカル変数の文字列を読む
     fn read_ident(&mut self) -> String {
-        match self.next_char() {
-            'a'..='z' => (),
-            _ => panic!("variable name must begin with A-z"),
-        };
+        if !self.is_al() { panic!("variable name must begin with alphabet or underscore"); }
         let s = self.read_while(|c| match c {
-            'a'..='z' | '0'..='9' => true,
+            'a'..='z'|'0'..='9'|'_' => true,
             _ => false,
         });
         s

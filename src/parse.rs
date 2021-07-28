@@ -1,15 +1,19 @@
 // parse.rs
 
-//use std::fmt;
+use std::fmt;
 use std::collections::HashMap;
 
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
+use crate::tokenize::tokenize;
 
 
 #[test]
 fn test_parse() {
-
+    let tokens = tokenize(String::from("return 4;"));
+    println!("{:?}", tokens);
+    let ast = parse(tokens);
+    println!("{:?}", ast);
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +23,8 @@ pub enum NodeKind {
     Assign, // =
     Lvar{name: String, offset: usize}, // 一文字のローカル変数(変数名, rbpからのオフセット)
     Num(i32), // 整数
+
+    Return,
 }
 
 // Abstract syntax tree
@@ -97,6 +103,17 @@ impl Parser {
         }
     }
 
+    // consumeの引数をTokenKindに置き換えたもの
+    fn consume_tokenkind(&mut self, kind: TokenKind) -> bool {
+        match self.cur_token() {
+            Token{ kind: k, ..} if k == kind => {
+                self.consume_any();
+                true
+            },
+            _ => false,
+        }
+    }
+
     // 現在のトークンは指定された文字列のreservedトークンであるに違いないので読み進める
     fn consume_expected(&mut self, string: &str) {
         if !self.consume(string) {
@@ -140,11 +157,20 @@ impl Parser {
         ret
     }
 
-    // stmt = expr ";"
+    // stmt = expr ";" | "return" expr ";"
     fn stmt(&mut self) -> AST {
-        let ast = self.expr();
-        self.consume_expected(";");
-        ast
+        // "return" expr ";" 
+        if self.consume_tokenkind(TokenKind::Return) {
+            let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
+            self.consume_expected(";");
+            ast
+        }
+        // expr ";"
+        else {
+            let ast = self.expr();
+            self.consume_expected(";");
+            ast
+        }
     }
 
     // expr = assign
