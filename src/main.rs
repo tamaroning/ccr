@@ -38,19 +38,21 @@ fn main() {
     }
 
     // ソースコードをトークナイズする
-    println!("Tokenizing input...");
+    //println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
-    println!("Done");
+    //println!("Done");
+    println!("{:?}", tokens);
 
     // トークンの配列からASTを作成
-    println!("Parsing tokens...");
+    //println!("Parsing tokens...");
     let asts = parse::parse(tokens);
-    println!("Done");
+    //println!("Done");
+    println!("{:?}", asts);
     
     // ASTからアセンブリを生成して,tmp.sに書き込む
-    println!("Generating assembly...");
+    //println!("Generating assembly...");
     codegen::codegen(asts, "tmp.s");
-    println!("Done");
+    //println!("Done");
 }
 
 #[test]

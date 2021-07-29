@@ -20,11 +20,12 @@ fn test_parse() {
 pub enum NodeKind {
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
+    Deref, Addr, // *, &
     Assign, // =
+    
     Lvar{ name: String, offset: usize }, // ローカル変数(変数名, rbpからのオフセット)
     FuncCall{ name: String, argv: Box<Vec<AST>> }, // 関数呼び出し
     Num(isize), // 整数
-
     Return, // return文 戻り値はlhsを使う
     If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond])[then] else [else]　cond(expr), then(stmt), else(stmt)
     While{ cond: Box<AST>, proc: Box<AST> }, //while([cond]) [proc]
@@ -90,7 +91,7 @@ impl Parser {
     }
 
     fn is_expr(&self) -> bool {
-        if self.check_reserved("+") | self.check_reserved("-") { return true; }
+        if self.is_cur_reserved("+") | self.is_cur_reserved("-") { return true; }
         return match self.cur_token() {
             Token{ kind: TokenKind::Ident(_), .. } | Token{ kind: TokenKind::Num(_), .. } => true,
             _ => false,
@@ -120,7 +121,7 @@ impl Parser {
 
     // 現在のトークンが指定された文字列のreservedトークンに一致すれば、trueを返す
     // 一致しなければfalseを返す
-    fn check_reserved(&self, string: &str) -> bool {
+    fn is_cur_reserved(&self, string: &str) -> bool {
         match self.cur_token() {
             Token{ kind: TokenKind::Reserved(t) ,.. } if t == string  => {
                 true
@@ -338,13 +339,20 @@ impl Parser {
         ast
     }
 
-    // unary = ("+" | "-")? primary
+    // unary = ("+" | "-" | "*" | "&")? unary
+    //       | primary
     fn unary(&mut self) -> AST {
         if self.consume("+") {
-            return self.primary();
+            return self.unary();
         } else if self.consume("-") {
             return AST::Node{ kind: NodeKind::Minus,
-                    lhs: Box::new(new_node_num(0)), rhs: Box::new(self.primary()) };
+                    lhs: Box::new(new_node_num(0)), rhs: Box::new(self.unary()) };
+        } else if self.consume("*") {
+            return AST::Node{ kind: NodeKind::Deref,
+                    lhs: Box::new(self.unary()), rhs: Box::new(AST::Nil) };
+        }  else if self.consume("&") {
+            return AST::Node{ kind: NodeKind::Addr,
+                    lhs: Box::new(self.unary()), rhs: Box::new(AST::Nil) };
         } else {
             return self.primary();
         }
@@ -374,6 +382,7 @@ impl Parser {
     // ident : function name or local variable name
     fn ident(&mut self) -> AST {
 
+        println!("{:?}",self.cur_token());
         let ident_name = match self.consume_any() {
             Token{ kind: TokenKind::Ident(s), .. } => s,
             _ => panic!("unexpected token"),

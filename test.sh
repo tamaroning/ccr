@@ -14,7 +14,7 @@ assert() {
     ./tmp
     actual="$?"
     
-    echo "Run ./tmp"
+    #echo "Run ./tmp"
     echo "------- Result -------"
     if [ "$actual" = "$expected" ]; then
         echo "Got $actual as expected"
@@ -24,15 +24,6 @@ assert() {
     fi
 }
 
-assert 9 '
-sum = 0;
-width = 3;
-for ( i = 1; i <= width; i = i + 1) {
-    for (j = 1; j <= width; j = j + 1) {
-        sum = sum + 1;
-    }
-}
-return sum;
-'
+assert 3 '{ x=3; y = &x; z=*y; return z;}'
 
 echo OK

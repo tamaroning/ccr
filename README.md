@@ -74,21 +74,17 @@ And you need to link the .o file to the assembly dumped by ccr.
 # Todo
 ## Steps  
 - [x] Step3 簡単な式(例: 3+12-5)の結果を出力する
-- [x] Step4 エラーメッセージの改良
 - [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
 - [x] Step5-2 スタックマシンへのコンパイル
 - [x] Step6 単項プラス/マイナス
 - [x] Step7 比較演算子
-- [x] Step8 ソースコード分割
-- [x] Step9 1文字のローカル変数
-- [x] Step10 複数文字のローカル変数
+- [x] Step9,10 ローカル変数
 - [x] Step11 return文
-- [x] Step12-1 if-else
-- [x] Step12-2 while
-- [x] Step12-3 for
+- [x] Step12 if-else, for, while
 - [x] Step13 {}ブロック
-- [x] Step14-1 引数なし関数呼び出し
-- [x] Step14-2 引数あり関数呼び出し
+- [x] Step14 関数呼び出し
+- [ ] 単項*と& (derefとaddr)
+- [ ] ポインタに関する演算
 - [ ] Step15 関数定義
 
 ##  Refactoring and improvement
