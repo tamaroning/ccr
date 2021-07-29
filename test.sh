@@ -13,7 +13,8 @@ assert() {
     cc -o tmp tmp.s
     ./tmp
     actual="$?"
-
+    
+    echo "Run ./tmp"
     echo "------- Result -------"
     if [ "$actual" = "$expected" ]; then
         echo "Got $actual as expected"
@@ -23,14 +24,20 @@ assert() {
     fi
 }
 
-assert 200 '
-flag = 0;
-ret = 1;
-if (flag) ret = 100;
-else ret = 200;
-return ret;
+assert 100 '
+sum = 0;
+for ( i = 0; i <= 10; i = i + 1)
+    sum = sum + i;
+
+if (sum > 50) return 100;
+else return 200;
 '
 
-
+assert 100 '
+i = 0;
+while (i != 100)
+    i = i + 1;
+return i;
+'
 
 echo OK

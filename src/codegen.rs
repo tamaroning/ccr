@@ -130,6 +130,41 @@ impl CodeGenerator {
                             }
                         };
                     },
+                    NodeKind::While(cond, proc) => {
+                        let label_begin = format!(".Lbegin{}", self.label_cnt);
+                        self.label_cnt += 1;
+                        let label_end = format!(".Lelse{}", self.label_cnt);
+                        self.label_cnt += 1;
+
+                        self.output(&format!("{}:", label_begin));
+                        self.gen_expr(*cond);
+                        self.output("    pop rax");
+                        self.output("    cmp rax, 0");
+                        self.output(&format!("    je {}", label_end));
+                        self.gen_expr(*proc);
+                        self.output(&format!("    jmp {}", label_begin));
+                        self.output(&format!("{}:", label_end));
+                        return;
+                    },
+                    NodeKind::For(expr_a, expr_b, expr_c, proc) => {
+                        let label_begin = format!(".Lbegin{}", self.label_cnt);
+                        self.label_cnt += 1;
+                        let label_end = format!(".Lelse{}", self.label_cnt);
+                        self.label_cnt += 1;
+
+                        self.gen_expr(*expr_a);
+                        self.output(&format!("{}:", label_begin));
+                        self.gen_expr(*expr_b);
+                        self.output("    pop rax");
+                        self.output("    cmp rax, 0");
+                        self.output(&format!("    je {}", label_end));
+                        self.gen_expr(*proc);
+                        self.gen_expr(*expr_c);
+                        self.output(&format!("    jmp {}", label_begin));
+                        self.output(&format!("{}:", label_end));
+                        return;
+                    },
+
                     _ => (),
                 };
                 
@@ -192,7 +227,7 @@ impl CodeGenerator {
                 // push rax
                 self.output("    mov rax, rbp");
                 self.output(&format!("    sub rax, {}", ofs));
-                self.output("    push rax;");
+                self.output("    push rax");
             },
             _ => {
                 panic!("代入の左辺値が変数ではありません");

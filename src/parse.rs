@@ -10,7 +10,7 @@ use crate::tokenize::tokenize;
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("if(a)a =1;else a = 1;"));
+    let tokens = tokenize(String::from("for(A;B;C) D;"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -25,7 +25,9 @@ pub enum NodeKind {
     Num(i32), // 整数
 
     Return, // return文 戻り値はlhsを使う
-    If(Box<AST>, Box<AST>, Box<AST>), // if文　cond(expr), then(stmt), else(stmt) これ拡張性あるか?
+    If(Box<AST>, Box<AST>, Box<AST>), // if([cond])[then] else [else]　cond(expr), then(stmt), else(stmt)
+    While(Box<AST>, Box<AST>), //while([cond]) [proc]
+    For(Box<AST>, Box<AST>, Box<AST>, Box<AST>) // for文 for([A];[B];[C]) [D]
 }
 
 // Abstract syntax tree
@@ -88,7 +90,7 @@ impl Parser {
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
-        //println!("consumed index: {}, Token: {:?}", self.pos, ret);
+        //d println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -161,13 +163,17 @@ impl Parser {
     // stmt = expr ";" 
     //      | "return" expr ";"
     //      | "if" "(" expr ")" stmt ("else" stmt)?
+    //      | "while" "(" expr ")" stmt
+    //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
         if self.consume_keyword("return") {
             let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
             self.consume_expected(";");
             return ast;
-        } else if self.consume_keyword("if") {
+        }
+        // "if" "(" expr ")" stmt ("else" stmt)?
+        else if self.consume_keyword("if") {
             self.consume_expected("(");
             let cond = self.expr();
             self.consume_expected(")");
@@ -177,7 +183,30 @@ impl Parser {
                 els = self.stmt();
             }
             return AST::Node{ kind: NodeKind::If(Box::new(cond), Box::new(then), Box::new(els)), 
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+        }
+        // "while" "(" expr ")" stmt
+        else if self.consume_keyword("while") {
+            self.consume_expected("(");
+            let cond = self.expr();
+            self.consume_expected(")");
+            let proc = self.stmt();
+            return AST::Node{ kind: NodeKind::While(Box::new(cond), Box::new(proc)), 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+        }
+        // "for" "(" expr? ";" expr? ";" expr? ")" stmt
+        else if self.consume_keyword("for") {
+            self.consume_expected("(");
+            let expr_a = self.expr();
+            self.consume(";");
+            let expr_b = self.expr();
+            self.consume(";");
+            let expr_c = self.expr();
+            self.consume_expected(")");
+            let proc = self.stmt();
+            return AST::Node{ 
+                kind: NodeKind::For(Box::new(expr_a), Box::new(expr_b), Box::new(expr_c), Box::new(proc)), 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // expr ";"
         else {
@@ -322,7 +351,7 @@ impl Parser {
                         self.locals.insert(var_name.clone(), self.offset);
                         let ret = AST::Node{ kind: NodeKind::Lvar{ name: var_name.clone(), offset: self.offset },
                         lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
-                        println!("{} offset: {}", var_name, self.offset);
+                        //d println!("{} offset: {}", var_name, self.offset);
                         self.offset += 8;
                         return ret;
                     },

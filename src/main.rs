@@ -40,17 +40,17 @@ fn main() {
     // ソースコードをトークナイズする
     println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
-    println!("done");
+    println!("Done");
 
     // トークンの配列からASTを作成
     println!("Parsing tokens...");
     let asts = parse::parse(tokens);
-    println!("done");
+    println!("Done");
     
     // ASTからアセンブリを生成して,tmp.sに書き込む
     println!("Generating assembly...");
     codegen::codegen(asts, "tmp.s");
-    println!("done");
+    println!("Done");
 }
 
 #[test]

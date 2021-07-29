@@ -23,14 +23,39 @@ Then assemble tmp.s into an executable binary:
 ```
 $ cc -o tmp tmp.s
 $ ./tmp
+```
+
+Check the return value:  
+```
 $ echo $?
 ```
+Make sure that the return value is cure in the range of 0~255  
 
 ## Test
 You can run test.sh to execute the demo:  
 ```
 $ ./test.sh
 ```
+
+# Implemented features
+- Numeric literals (only signed integer) (ex: 0, 24, +4, -699)
+- Basic arithmetic operatiors (+, -, *, /)
+- Comparison operators (==, !=, </>, <=/>=)
+- Local variables (No need to declare)
+- return statement
+- assignment (ex: a = 4*3;)
+- Control sytax such as if-else, for, and while
+
+Ccr can compile programs like the following:  
+```
+sum = 0;
+for ( i = 0; i <= 10; i = i + 1)
+    sum = sum + i;
+
+if (sum > 50) return 100;
+else return 200;
+```
+
 
 # Todo
 ## Steps  
@@ -57,7 +82,7 @@ refs: Bib[0]
 - [x] Refactoring: TokenizeとParseの処理を分ける  
 - [x] .cファイルを読み込んで.sファイルを吐き出せるようにする
 - [x] 標準出力に実行中の情報を出力できるようにする
-- [ ] コード生成時に検出されるエラー出力の強化 
+- [ ] コード生成時に検出されるエラー出力の強化
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
 
 # Bibliography

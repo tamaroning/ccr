@@ -14,9 +14,7 @@ pub enum TokenKind {
     Reserved(String), // keywords or punctuators
     Num(i32), // integer literals(value)
     Ident(String), // identifiers(name)
-    
     Keyword(String), // returnやifなどの予約語
-    
     Eof, // end of the 
 }
 
@@ -50,17 +48,17 @@ pub fn tokenize(input: String) -> Vec<Token> {
             _ => (),
         };
 
-        // identifiers 変数命
+        // 予約語
+        if tokenizer.is_keyword() {
+            tokens.push(tokenizer.read_keyword());                
+            continue;
+        }
+
+        // identifiers (変数名)
         if tokenizer.is_al()  {
-            // return
-            if tokenizer.is_keyword() {
-                tokens.push(tokenizer.read_keyword());                
-                continue;
-            } else {
-                // 変数名
-                tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
-                continue;
-            }
+            // 変数名
+            tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
+            continue;
         }
 
 
@@ -118,12 +116,12 @@ impl Tokenizer {
     // 先頭の文字列がkeywordかどうか返す
     fn is_keyword(&mut self) -> bool {
         if !self.is_al(){ return false; }
-        if self.starts_with("return")|self.starts_with("if")|self.starts_with("else"){
+        if self.starts_with("return")|self.starts_with("if")|self.starts_with("else")|
+                self.starts_with("while")|self.starts_with("for"){
             return true;
         }
         false
     }
-
 
     // 1文字読み進める
     fn read_char(&mut self) -> char {
@@ -183,7 +181,7 @@ impl Tokenizer {
     fn read_ident(&mut self) -> String {
         if !self.is_al() { panic!("variable name must begin with alphabet or underscore"); }
         let s = self.read_while(|c| match c {
-            'a'..='z'|'0'..='9'|'_' => true,
+            'A'..='Z'|'a'..='z'|'0'..='9'|'_' => true,
             _ => false,
         });
         s
@@ -196,6 +194,8 @@ impl Tokenizer {
         if self.starts_with("return"){ keyword = self.read_nchars(6); }
         else if self.starts_with("if"){ keyword = self.read_nchars(2); }
         else if self.starts_with("else"){ keyword = self.read_nchars(4); }
+        else if self.starts_with("while"){ keyword = self.read_nchars(5); }
+        else if self.starts_with("for"){ keyword = self.read_nchars(3); }
         else { panic!("keyword is expected"); }
         
         return Token{ kind: TokenKind::Keyword(keyword), pos: self.pos };
