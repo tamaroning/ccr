@@ -4,7 +4,7 @@ use std::fmt;
 
 #[test]
 fn test_tokenize() {
-    let tokens = tokenize(String::from("return 4;"));
+    let tokens = tokenize(String::from("if(a)a =1;else a = 1;"));
     println!("{:?}", tokens);
 
 }
@@ -15,7 +15,7 @@ pub enum TokenKind {
     Num(i32), // integer literals(value)
     Ident(String), // identifiers(name)
     
-    Return,
+    Keyword(String), // returnやifなどの予約語
     
     Eof, // end of the 
 }
@@ -53,10 +53,8 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // identifiers 変数命
         if tokenizer.is_al()  {
             // return
-            if tokenizer.starts_with("return ") {
-                tokenizer.read_nchars(7);
-                tokenizer.read_whitespace();
-                tokens.push(Token{ kind: TokenKind::Return, pos: tokenizer.pos });
+            if tokenizer.is_keyword() {
+                tokens.push(tokenizer.read_keyword());                
                 continue;
             } else {
                 // 変数名
@@ -116,6 +114,16 @@ impl Tokenizer {
             _ => false,
         }
     }
+
+    // 先頭の文字列がkeywordかどうか返す
+    fn is_keyword(&mut self) -> bool {
+        if !self.is_al(){ return false; }
+        if self.starts_with("return")|self.starts_with("if")|self.starts_with("else"){
+            return true;
+        }
+        false
+    }
+
 
     // 1文字読み進める
     fn read_char(&mut self) -> char {
@@ -179,6 +187,18 @@ impl Tokenizer {
             _ => false,
         });
         s
+    }
+
+    // 予約語を読む
+    // return4;なども正しい入力と見做されることに注意
+    fn read_keyword(&mut self) -> Token {
+        let keyword;
+        if self.starts_with("return"){ keyword = self.read_nchars(6); }
+        else if self.starts_with("if"){ keyword = self.read_nchars(2); }
+        else if self.starts_with("else"){ keyword = self.read_nchars(4); }
+        else { panic!("keyword is expected"); }
+        
+        return Token{ kind: TokenKind::Keyword(keyword), pos: self.pos };
     }
 
     //tokenize時のエラーを出力する

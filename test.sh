@@ -23,12 +23,12 @@ assert() {
     fi
 }
 
-assert 6 '
-three = 3;
-one = 1;
-two = three - one;
-six = three + one + two;
-return six;
+assert 200 '
+flag = 0;
+ret = 1;
+if (flag) ret = 100;
+else ret = 200;
+return ret;
 '
 
 

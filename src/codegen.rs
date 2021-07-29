@@ -6,146 +6,197 @@ use std::io::{Write, BufWriter};
 use crate::parse::AST;
 use crate::parse::NodeKind;
 
+#[derive(Debug)]
+struct CodeGenerator {
+    ast_list: Vec<AST>,
+    label_cnt: usize,
+    f: BufWriter<File>, 
+}
+
 // ASTの配列からアセンブリ全体を生成する
 pub fn codegen(vec: Vec<AST>, fname: &str) {
 
-    // 出力ファイルを用意する
-    let mut f = BufWriter::new(File::create(fname).unwrap());
+    let mut gen = CodeGenerator{ ast_list: vec, label_cnt: 0, f: BufWriter::new(File::create(fname).unwrap()) };
 
-    writeln!(f, ".intel_syntax noprefix").unwrap();
-    writeln!(f, ".global main").unwrap();
-    writeln!(f, "main:").unwrap();
-    writeln!(f, "    push rbp").unwrap();
-    writeln!(f, "    mov rbp, rsp").unwrap();
+    gen.output(".intel_syntax noprefix");
+    gen.output(".global main");
+    gen.output("main:");
+    gen.output("    push rbp");
+    gen.output("    mov rbp, rsp");
 
     // スタックフレームを用意する
-    writeln!(f, "    sub rsp, 208").unwrap();
-
+    gen.output("    sub rsp, 208");
     // vecの各要素(stmt)からアセンブリを生成する。
-    for elm in vec {
-        gen_expr(&mut f, elm);
+    for elm in gen.ast_list.clone() {
+        gen.gen_expr(elm);
         // 式の評価結果として一つ値が残る
-        writeln!(f, "    pop rax").unwrap();
+        gen.output("    pop rax");
     }
 
     // スタックフレームを戻す
-    writeln!(f, "    mov rsp, rbp").unwrap();
-    writeln!(f, "    pop rbp").unwrap();
-    writeln!(f, "    ret").unwrap();
+    gen.output("    mov rsp, rbp");
+    gen.output("    pop rbp");
+    gen.output("    ret");
 }
 
-// 代入の左辺値(変数)のアドレスをスタックトップに詰むアセンブリを出力
-fn gen_lval(f: &mut BufWriter<File>, ast: AST) {
-    match ast {
-        AST::Node{ kind: NodeKind::Lvar{offset: ofs, ..}, .. } => {
-            // ローカル変数のアドレスをスタックに積む
-            // rax <- rbp - ofs
-            // push rax
-            writeln!(f, "    mov rax, rbp").unwrap();
-            writeln!(f, "    sub rax, {}", ofs).unwrap();
-            writeln!(f, "    push rax;").unwrap();
-        },
-        _ => {
-            panic!("代入の左辺値が変数ではありません");
-        },
-    };
-}
 
-// exprからアセンブリを出力する
-pub fn gen_expr(f: &mut BufWriter<File>, ast: AST) {
+// リファクタリング
+// CodeGeneratorを用いてcodegen関数を簡単にする
+impl CodeGenerator {
+    // ファイルへの書き出し
+    fn output(&mut self, s: &str) {
+        writeln!(self.f, "{}",s).unwrap();
+    }
 
-    match ast.clone() {
+    // exprからアセンブリを出力する
+    pub fn gen_expr(&mut self, ast: AST) {
 
-        AST::Node{ kind: k, lhs: l, rhs: r } => {
-            match k {
-                // 整数
-                // 左辺と右辺はNil
-                NodeKind::Num(i) => {
-                    writeln!(f, "    push {}", i).unwrap();
-                    return;
-                },
-                // ローカル変数
-                // 左辺と右辺はNil
-                NodeKind::Lvar{ .. } => {
-                    // 左辺値をスタックトップに積む
-                    gen_lval(f, ast);
-                    // rax <- 左辺値
-                    writeln!(f, "    pop rax").unwrap();
-                    writeln!(f, "    mov rax, [rax]").unwrap();
-                    writeln!(f, "    push rax").unwrap();
-                    return;
-                }
-                // 代入式
-                // 左辺はローカル変数, 右辺はexpr
-                NodeKind::Assign => {
-                    // 左辺のアドレスをスタックトップに詰む
-                    gen_lval(f, *l);
-                    // 右辺値の結果をスタックトップに詰む
-                    gen_expr(f, *r);
-                    // 左辺に右辺を代入する
-                    writeln!(f, "    pop rdi").unwrap();
-                    writeln!(f, "    pop rax").unwrap();
-                    writeln!(f, "    mov [rax], rdi").unwrap();
-                    writeln!(f, "    push rdi").unwrap();
-                    return;
-                }
-                NodeKind::Return => {
-                    gen_expr(f, *l); // returnノードのrhsはNilを指す
-                    writeln!(f, "       pop rax").unwrap();
-                    writeln!(f, "       mov rsp, rbp").unwrap();
-                    writeln!(f, "       pop rbp").unwrap();
-                    writeln!(f, "       ret").unwrap(); // 簡単のためにretが複数出力されることがある
-                    return;
-                },
-                _ => (),
-            };
-            
-            // rdi <- 右辺値
-            // rax <- 左辺値
-            gen_expr(f, *l);
-            gen_expr(f, *r);
-            writeln!(f, "    pop rdi").unwrap();
-            writeln!(f, "    pop rax").unwrap();
+        match ast.clone() {
 
-            // rax <- 右辺値と左辺値の演算結果
-            match k {
-                // 四則演算
-                NodeKind::Plus => { writeln!(f, "    add rax, rdi").unwrap(); },
-                NodeKind::Minus => { writeln!(f, "    sub rax, rdi").unwrap(); },
-                NodeKind::Mul => { writeln!(f, "    imul rax, rdi").unwrap(); },
-                NodeKind::Div => {
-                    writeln!(f, "    cqo").unwrap();
-                    writeln!(f, "    idiv rdi").unwrap();
-                },
-                // 比較演算子
-                NodeKind::Eq => {
-                    writeln!(f, "    cmp rax, rdi").unwrap();
-                    writeln!(f, "    sete al").unwrap();
-                    writeln!(f, "    movzb rax, al").unwrap();
-                },
-                NodeKind::Ne => {
-                    writeln!(f, "    cmp rax, rdi").unwrap();
-                    writeln!(f, "    setne al").unwrap();
-                    writeln!(f, "    movzb rax, al").unwrap();
-                },
-                NodeKind::Lt => {
-                    writeln!(f, "    cmp rax, rdi").unwrap();
-                    writeln!(f, "    setl al").unwrap();
-                    writeln!(f, "    movzb rax, al").unwrap();
-                },
-                NodeKind::Le => {
-                    writeln!(f, "    cmp rax, rdi").unwrap();
-                    writeln!(f, "    setle al").unwrap();
-                    writeln!(f, "    movzb rax, al").unwrap();
-                },
-                _ => (),  
-            };
+            AST::Node{ kind: k, lhs: l, rhs: r } => {
+                match k {
+                    // 整数
+                    // 左辺と右辺はNil
+                    NodeKind::Num(i) => {
+                        self.output(&format!("    push {};", i));
+                        return;
+                    },
+                    // ローカル変数
+                    // 左辺と右辺はNil
+                    NodeKind::Lvar{ .. } => {
+                        // 左辺値をスタックトップに積む
+                        self.gen_lval(ast);
+                        // rax <- 左辺値
+                        self.output("    pop rax");
+                        self.output("    mov rax, [rax]");
+                        self.output("    push rax");
+                        return;
+                    }
+                    // 代入式
+                    // 左辺はローカル変数, 右辺はexpr
+                    NodeKind::Assign => {
+                        // 左辺のアドレスをスタックトップに詰む
+                        self.gen_lval(*l);
+                        // 右辺値の結果をスタックトップに詰む
+                        self.gen_expr(*r);
+                        // 左辺に右辺を代入する
+                        self.output("    pop rdi");
+                        self.output("    pop rax");
+                        self.output("    mov [rax], rdi");
+                        self.output("    push rdi");
+                        return;
+                    }
+                    NodeKind::Return => {
+                        self.gen_expr(*l); // returnノードのrhsはNilを指す
+                        self.output("    pop rax");
+                        self.output("    mov rsp, rbp");
+                        self.output("    pop rbp");
+                        self.output("    ret"); // 簡単のためにretが複数出力されることがある
+                        return;
+                    },
+                    NodeKind::If(cond, then, els) => {
+                        // elseなし
+                        match *els {
+                            // else あり
+                            AST::Node{ .. } => {
+                                let label_else = format!(".Lelse{}", self.label_cnt);
+                                self.label_cnt += 1;
+                                let label_end = format!(".Lelse{}", self.label_cnt);
+                                self.label_cnt += 1;
 
-            // rax をスタックトップに積む
-            writeln!(f, "    push rax").unwrap();
+                                self.gen_expr(*cond);
+                                self.output("    pop rax");
+                                self.output("    cmp rax, 0");
+                                self.output(&format!("    je {}", label_else));
+                                self.gen_expr(*then);
+                                self.output(&format!("    jmp {}", label_end));
+                                self.output(&format!("{}:", label_else));
+                                self.gen_expr(*els);
+                                self.output(&format!("{}:", label_end));
+                                return;
+                            },
+                            // else なし
+                            _ => {
+                                let label = format!(".Lend{}", self.label_cnt);
+                                self.label_cnt += 1;
 
-            return;
-        },
-        _ => ()
-    };
+                                self.gen_expr(*cond);
+                                self.output("    pop rax");
+                                self.output("    cmp rax, 0");
+                                self.output(&format!("    je {}", label));
+                                self.gen_expr(*then);
+                                self.output(&format!("{}:", label));
+                                return;
+                            }
+                        };
+                    },
+                    _ => (),
+                };
+                
+                // rdi <- 右辺値
+                // rax <- 左辺値
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi");
+                self.output("    pop rax");
+
+                // rax <- 右辺値と左辺値の演算結果
+                match k {
+                    // 四則演算
+                    NodeKind::Plus => { self.output("    add rax, rdi"); },
+                    NodeKind::Minus => { self.output("    sub rax, rdi"); },
+                    NodeKind::Mul => { self.output("    imul rax, rdi"); },
+                    NodeKind::Div => {
+                        self.output("    cqo");
+                        self.output("    idiv rdi");
+                    },
+                    // 比較演算子
+                    NodeKind::Eq => {
+                        self.output("    cmp rax, rdi");
+                        self.output("    sete al");
+                        self.output("    movzb rax, al");
+                    },
+                    NodeKind::Ne => {
+                        self.output("    cmp rax, rdi");
+                        self.output("    setne al");
+                        self.output("    movzb rax, al");
+                    },
+                    NodeKind::Lt => {
+                        self.output("    cmp rax, rdi");
+                        self.output("    setl al");
+                        self.output("    movzb rax, al");
+                    },
+                    NodeKind::Le => {
+                        self.output("    cmp rax, rdi");
+                        self.output("    setle al");
+                        self.output("    movzb rax, al");
+                    },
+                    _ => (),  
+                };
+
+                // rax をスタックトップに積む
+                self.output("    push rax");
+
+                return;
+            },
+            _ => ()
+        };
+    }
+
+    // 代入の左辺値(変数)のアドレスをスタックトップに詰むアセンブリを出力
+    fn gen_lval(&mut self, ast: AST) {
+        match ast {
+            AST::Node{ kind: NodeKind::Lvar{offset: ofs, ..}, .. } => {
+                // ローカル変数のアドレスをスタックに積む
+                // rax <- rbp - ofs
+                // push rax
+                self.output("    mov rax, rbp");
+                self.output(&format!("    sub rax, {}", ofs));
+                self.output("    push rax;");
+            },
+            _ => {
+                panic!("代入の左辺値が変数ではありません");
+            },
+        };
+    }
 }

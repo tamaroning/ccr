@@ -10,7 +10,7 @@ use crate::tokenize::tokenize;
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("return 4;"));
+    let tokens = tokenize(String::from("if(a)a =1;else a = 1;"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -24,7 +24,8 @@ pub enum NodeKind {
     Lvar{name: String, offset: usize}, // 一文字のローカル変数(変数名, rbpからのオフセット)
     Num(i32), // 整数
 
-    Return,
+    Return, // return文 戻り値はlhsを使う
+    If(Box<AST>, Box<AST>, Box<AST>), // if文　cond(expr), then(stmt), else(stmt) これ拡張性あるか?
 }
 
 // Abstract syntax tree
@@ -104,9 +105,9 @@ impl Parser {
     }
 
     // consumeの引数をTokenKindに置き換えたもの
-    fn consume_tokenkind(&mut self, kind: TokenKind) -> bool {
+    fn consume_keyword(&mut self, string: &str) -> bool {
         match self.cur_token() {
-            Token{ kind: k, ..} if k == kind => {
+            Token{ kind: TokenKind::Keyword(s), ..} if s == string.to_string() => {
                 self.consume_any();
                 true
             },
@@ -157,19 +158,32 @@ impl Parser {
         ret
     }
 
-    // stmt = expr ";" | "return" expr ";"
+    // stmt = expr ";" 
+    //      | "return" expr ";"
+    //      | "if" "(" expr ")" stmt ("else" stmt)?
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
-        if self.consume_tokenkind(TokenKind::Return) {
+        if self.consume_keyword("return") {
             let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
             self.consume_expected(";");
-            ast
+            return ast;
+        } else if self.consume_keyword("if") {
+            self.consume_expected("(");
+            let cond = self.expr();
+            self.consume_expected(")");
+            let then = self.stmt();
+            let mut els = AST::Nil;
+            if self.consume_keyword("else") {
+                els = self.stmt();
+            }
+            return AST::Node{ kind: NodeKind::If(Box::new(cond), Box::new(then), Box::new(els)), 
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // expr ";"
         else {
             let ast = self.expr();
             self.consume_expected(";");
-            ast
+            return ast;
         }
     }
 

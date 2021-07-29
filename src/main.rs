@@ -43,7 +43,7 @@ fn main() {
     println!("done");
 
     // トークンの配列からASTを作成
-    println!("parsing tokens...");
+    println!("Parsing tokens...");
     let asts = parse::parse(tokens);
     println!("done");
     

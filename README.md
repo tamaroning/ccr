@@ -44,7 +44,9 @@ $ ./test.sh
 - [x] Step9 1文字のローカル変数
 - [x] Step10 複数文字のローカル変数
 - [x] Step11 return文
-- [ ] Step12 制御構文
+- [x] Step12-1 if-else
+- [ ] Step12-2 while
+- [ ] Step12-3 for
 - [ ] Step13 {}ブロック
 - [ ] Step14 関数呼び出し
 - [ ] Step15 関数定義
