@@ -42,9 +42,9 @@ $ ./test.sh
 - Basic arithmetic operatiors (+, -, *, /)
 - Comparison operators (==, !=, </>, <=/>=)
 - Local variables (No need to declare)
-- return statement
-- assignment (ex: a = 4*3;)
-- Control sytax such as if-else, for, and while
+- Return statement
+- Assignment (ex: a = 4*3;)
+- Control sytax (if-else, for, while)
 
 Ccr can compile programs like the following:  
 ```
@@ -70,13 +70,13 @@ else return 200;
 - [x] Step10 複数文字のローカル変数
 - [x] Step11 return文
 - [x] Step12-1 if-else
-- [ ] Step12-2 while
-- [ ] Step12-3 for
+- [x] Step12-2 while
+- [x] Step12-3 for
 - [ ] Step13 {}ブロック
 - [ ] Step14 関数呼び出し
 - [ ] Step15 関数定義
 
-refs: Bib[0]
+ref: Refs[0]
 
 ##  Refactoring and improvement
 - [x] Refactoring: TokenizeとParseの処理を分ける  
@@ -85,6 +85,6 @@ refs: Bib[0]
 - [ ] コード生成時に検出されるエラー出力の強化
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
 
-# Bibliography
-[0] Rui Ueyama, '低レイヤを知りたい人のためのCコンパイラ作成入門', (https://www.sigbus.info/compilerbook#)
-
+# References
+[0] Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)
+[1] rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)
