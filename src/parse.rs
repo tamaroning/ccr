@@ -10,7 +10,7 @@ use crate::tokenize::tokenize;
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("for(A;B;C){D;}"));
+    let tokens = tokenize(String::from("Foo();"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -21,7 +21,8 @@ pub enum NodeKind {
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
     Assign, // =
-    Lvar{name: String, offset: usize}, // 一文字のローカル変数(変数名, rbpからのオフセット)
+    Lvar{ name: String, offset: usize }, // ローカル変数(変数名, rbpからのオフセット)
+    FuncCall{ name: String }, // 引数なし関数
     Num(i32), // 整数
 
     Return, // return文 戻り値はlhsを使う
@@ -92,7 +93,8 @@ impl Parser {
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
-        //d println!("consumed index: {}, Token: {:?}", self.pos, ret);
+        //d 
+        println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -330,7 +332,9 @@ impl Parser {
         }
     }
 
-    // primary = num | ident | "(" expr ")"
+    // primary = num | "(" expr ")"
+    //         | ident ローカル変数
+    //         | ident "(" ")" 引数なし関数呼び出し 
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
@@ -342,37 +346,45 @@ impl Parser {
         else if self.is_num() {
             return new_node_num(self.consume_number());
         }
-        // ident
+        // ident 関数名または変数名
         else {
             return self.ident();
         }
     }
 
-    // 一文字のローカル変数
+    // ident : function name or local variable name
     fn ident(&mut self) -> AST {
-        match self.consume_any() {
-            Token{ kind: TokenKind::Ident(var_name), .. } => {
-                match self.locals.get(&var_name) {
-                    // 変数名がすでに登録済み
-                    Some(ofs) => {
-                        return AST::Node{ kind: NodeKind::Lvar{ name: var_name.clone(), offset: *ofs },
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
-                    },
-                    // 変数名が未登録
-                    None => {
-                        self.locals.insert(var_name.clone(), self.offset);
-                        let ret = AST::Node{ kind: NodeKind::Lvar{ name: var_name.clone(), offset: self.offset },
-                        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
-                        //d println!("{} offset: {}", var_name, self.offset);
-                        self.offset += 8;
-                        return ret;
-                    },
-                };
-            },
-            _ => {
-                panic!("variable is expected");
-            }
+
+        let ident_name = match self.consume_any() {
+            Token{ kind: TokenKind::Ident(s), .. } => s,
+            _ => panic!("unexpected token"),
+        };
+        
+        // 引数なしの関数
+        if self.consume("(") {    
+            self.consume_expected(")");
+            return AST::Node{ kind: NodeKind::FuncCall{ name: ident_name.clone() }, 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
+
+
+        match self.locals.get(&ident_name) {
+            // 変数名がすでに登録済み
+            Some(ofs) => {
+                return AST::Node{ kind: NodeKind::Lvar{ name: ident_name.clone(), offset: *ofs },
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            },
+            // 変数名が未登録
+            None => {
+                self.locals.insert(ident_name.clone(), self.offset);
+                let ret = AST::Node{ kind: NodeKind::Lvar{ name: ident_name.clone(), offset: self.offset },
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                //d println!("{} offset: {}", var_name, self.offset);
+                self.offset += 8;
+                return ret;
+            },
+        };
+            
     }
 
 }

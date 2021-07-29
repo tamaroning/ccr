@@ -46,6 +46,7 @@ $ ./test.sh
 - Assignment (ex: a = 4*3;)
 - Control sytax (if-else, for, while)
 
+## Example 1 )  
 Ccr can compile programs like the following:  
 ```
 sum = 0;
@@ -59,7 +60,15 @@ for ( i = 1; i <= width; i = i + 1) {
 if (sum == 9) return 1;
 else return 0;
 ```
-
+## Example 2 )
+You can use functions which is defined in other object files:  
+```
+for(i = 0; i < 10; i = i + 1) {
+    foo();
+}
+```
+In this case, foo() is defined in an .o file.
+And you need to link the .o file to the assembly dumped by ccr.  
 
 # Todo
 ## Steps  
@@ -77,10 +86,9 @@ else return 0;
 - [x] Step12-2 while
 - [x] Step12-3 for
 - [x] Step13 {}ブロック
-- [ ] Step14 関数呼び出し
+- [x] Step14-1 引数なし関数呼び出し
+- [ ] Step14-2 引数あり関数呼び出し
 - [ ] Step15 関数定義
-
-ref: Refs[0]
 
 ##  Refactoring and improvement
 - [x] Refactoring: TokenizeとParseの処理を分ける  
@@ -91,4 +99,4 @@ ref: Refs[0]
 
 # References
 0. Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)  
- rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)  
+1. rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)  

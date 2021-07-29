@@ -13,7 +13,7 @@ fn test_tokenize() {
 pub enum TokenKind {
     Reserved(String), // keywords or punctuators
     Num(i32), // integer literals(value)
-    Ident(String), // identifiers(name)
+    Ident(String), // identifiers(name) function name and variable name
     Keyword(String), // returnやifなどの予約語
     Eof, // end of the 
 }

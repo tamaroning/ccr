@@ -170,7 +170,16 @@ impl CodeGenerator {
                         }
                         return;
                     },
+                    // 関数呼び出し
+                    // 引数なしのみ対応
+                    NodeKind::FuncCall{ name: func_name, ..} => {
+                        // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
+                        // 
 
+                        self.output(&format!("    call {}", func_name));
+                        self.output("    push rax"); // 戻り値をプッシュして整合性を保つ
+                        return;
+                    },
                     _ => (),
                 };
                 
