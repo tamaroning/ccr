@@ -10,7 +10,7 @@ use crate::tokenize::tokenize;
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("for(A;B;C) D;"));
+    let tokens = tokenize(String::from("for(A;B;C){D;}"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -27,7 +27,9 @@ pub enum NodeKind {
     Return, // return文 戻り値はlhsを使う
     If(Box<AST>, Box<AST>, Box<AST>), // if([cond])[then] else [else]　cond(expr), then(stmt), else(stmt)
     While(Box<AST>, Box<AST>), //while([cond]) [proc]
-    For(Box<AST>, Box<AST>, Box<AST>, Box<AST>) // for文 for([A];[B];[C]) [D]
+    For(Box<AST>, Box<AST>, Box<AST>, Box<AST>), // for文 for([A];[B];[C]) [D]
+
+    Block(Box<Vec<AST>>), // {}ブロック
 }
 
 // Abstract syntax tree
@@ -161,6 +163,7 @@ impl Parser {
     }
 
     // stmt = expr ";" 
+    //      | "{" stmt* "}"
     //      | "return" expr ";"
     //      | "if" "(" expr ")" stmt ("else" stmt)?
     //      | "while" "(" expr ")" stmt
@@ -206,6 +209,15 @@ impl Parser {
             let proc = self.stmt();
             return AST::Node{ 
                 kind: NodeKind::For(Box::new(expr_a), Box::new(expr_b), Box::new(expr_c), Box::new(proc)), 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+        }
+        // "{" stmt* "}"
+        else if self.consume("{") {
+            let mut vec = Vec::new();
+            while !self.consume("}") {
+                vec.push(self.stmt());
+            }
+            return AST::Node{ kind: NodeKind::Block(Box::new(vec)), 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // expr ";"

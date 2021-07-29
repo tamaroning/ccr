@@ -164,6 +164,12 @@ impl CodeGenerator {
                         self.output(&format!("{}:", label_end));
                         return;
                     },
+                    NodeKind::Block(vec) => {
+                        for ast in *vec {
+                            self.gen_expr(ast);
+                        }
+                        return;
+                    },
 
                     _ => (),
                 };

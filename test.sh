@@ -24,20 +24,15 @@ assert() {
     fi
 }
 
-assert 100 '
+assert 9 '
 sum = 0;
-for ( i = 0; i <= 10; i = i + 1)
-    sum = sum + i;
-
-if (sum > 50) return 100;
-else return 200;
-'
-
-assert 100 '
-i = 0;
-while (i != 100)
-    i = i + 1;
-return i;
+width = 3;
+for ( i = 1; i <= width; i = i + 1) {
+    for (j = 1; j <= width; j = j + 1) {
+        sum = sum + 1;
+    }
+}
+return sum;
 '
 
 echo OK
