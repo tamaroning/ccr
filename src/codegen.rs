@@ -50,6 +50,7 @@ impl CodeGenerator {
 
     // exprからアセンブリを出力する
     pub fn gen_expr(&mut self, ast: AST) {
+        self.output("");
 
         match ast.clone() {
 
@@ -94,9 +95,9 @@ impl CodeGenerator {
                         self.output("    ret"); // 簡単のためにretが複数出力されることがある
                         return;
                     },
-                    NodeKind::If(cond, then, els) => {
+                    NodeKind::If{ cond: c, then: t, els: e } => {
                         // elseなし
-                        match *els {
+                        match *e {
                             // else あり
                             AST::Node{ .. } => {
                                 let label_else = format!(".Lelse{}", self.label_cnt);
@@ -104,14 +105,14 @@ impl CodeGenerator {
                                 let label_end = format!(".Lelse{}", self.label_cnt);
                                 self.label_cnt += 1;
 
-                                self.gen_expr(*cond);
+                                self.gen_expr(*c);
                                 self.output("    pop rax");
                                 self.output("    cmp rax, 0");
                                 self.output(&format!("    je {}", label_else));
-                                self.gen_expr(*then);
+                                self.gen_expr(*t);
                                 self.output(&format!("    jmp {}", label_end));
                                 self.output(&format!("{}:", label_else));
-                                self.gen_expr(*els);
+                                self.gen_expr(*e);
                                 self.output(&format!("{}:", label_end));
                                 return;
                             },
@@ -120,33 +121,33 @@ impl CodeGenerator {
                                 let label = format!(".Lend{}", self.label_cnt);
                                 self.label_cnt += 1;
 
-                                self.gen_expr(*cond);
+                                self.gen_expr(*c);
                                 self.output("    pop rax");
                                 self.output("    cmp rax, 0");
                                 self.output(&format!("    je {}", label));
-                                self.gen_expr(*then);
+                                self.gen_expr(*t);
                                 self.output(&format!("{}:", label));
                                 return;
                             }
                         };
                     },
-                    NodeKind::While(cond, proc) => {
+                    NodeKind::While{ cond: c, proc: p } => {
                         let label_begin = format!(".Lbegin{}", self.label_cnt);
                         self.label_cnt += 1;
                         let label_end = format!(".Lelse{}", self.label_cnt);
                         self.label_cnt += 1;
 
                         self.output(&format!("{}:", label_begin));
-                        self.gen_expr(*cond);
+                        self.gen_expr(*c);
                         self.output("    pop rax");
                         self.output("    cmp rax, 0");
                         self.output(&format!("    je {}", label_end));
-                        self.gen_expr(*proc);
+                        self.gen_expr(*p);
                         self.output(&format!("    jmp {}", label_begin));
                         self.output(&format!("{}:", label_end));
                         return;
                     },
-                    NodeKind::For(expr_a, expr_b, expr_c, proc) => {
+                    NodeKind::For{ a: expr_a, b: expr_b, c: expr_c, proc: p } => {
                         let label_begin = format!(".Lbegin{}", self.label_cnt);
                         self.label_cnt += 1;
                         let label_end = format!(".Lelse{}", self.label_cnt);
@@ -158,7 +159,7 @@ impl CodeGenerator {
                         self.output("    pop rax");
                         self.output("    cmp rax, 0");
                         self.output(&format!("    je {}", label_end));
-                        self.gen_expr(*proc);
+                        self.gen_expr(*p);
                         self.gen_expr(*expr_c);
                         self.output(&format!("    jmp {}", label_begin));
                         self.output(&format!("{}:", label_end));
@@ -171,11 +172,31 @@ impl CodeGenerator {
                         return;
                     },
                     // 関数呼び出し
-                    // 引数なしのみ対応
-                    NodeKind::FuncCall{ name: func_name, ..} => {
+                    NodeKind::FuncCall{ name: func_name, argv: args } => {
                         // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
-                        // 
-
+                        //引数はrcx,rdx,r8,r9の順に渡される
+                        if args.len() >= 4 {
+                            self.gen_expr(args[3].clone());
+                            self.output("    pop rax");
+                            self.output("    mov rcx, rax");
+                        }
+                        if args.len() >= 3 {
+                            self.gen_expr(args[2].clone());
+                            self.output("    pop rax");
+                            self.output("    mov rdx, rax");
+                        }
+                        if args.len() >= 2 {
+                            self.gen_expr(args[1].clone());
+                            self.output("    pop rax");
+                            self.output("    mov rsi, rax");
+                        }
+                        if args.len() >= 1 {
+                            self.gen_expr(args[0].clone());
+                            self.output("    pop rax");
+                            self.output("    mov rdi, rax");
+                        }
+                        if args.len() > 4 { panic!("the number of arguments must be < 5")}
+                        
                         self.output(&format!("    call {}", func_name));
                         self.output("    push rax"); // 戻り値をプッシュして整合性を保つ
                         return;

@@ -12,7 +12,7 @@ fn test_tokenize() {
 #[derive(Debug, Clone,PartialEq)]
 pub enum TokenKind {
     Reserved(String), // keywords or punctuators
-    Num(i32), // integer literals(value)
+    Num(isize), // integer literals(value)
     Ident(String), // identifiers(name) function name and variable name
     Keyword(String), // returnやifなどの予約語
     Eof, // end of the 
@@ -162,13 +162,13 @@ impl Tokenizer {
     }
 
     // 非負整数を読む
-    fn read_number(&mut self) -> i32 {
+    fn read_number(&mut self) -> isize {
         let s = self.read_while(|c| match c {
             '0'..='9' => true,
             _ => false,
         });
 
-        match s.parse::<i32>() {
+        match s.parse::<isize>() {
             Ok(i) => { return i; },
             Err(_) => {
                 self.error_at(self.pos, format_args!("invalid number"));
