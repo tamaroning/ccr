@@ -86,5 +86,5 @@ ref: Refs[0]
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
 
 # References
-[0] Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)  
-[1] rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)  
+[0] Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)
+[1] rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)
