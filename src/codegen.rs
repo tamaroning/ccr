@@ -39,18 +39,25 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
 
 }
 
+fn is_nil(ast: AST) -> bool {
+    match ast {
+        AST::Nil => true,
+        _ => false,
+    }
+}
+
+// 変数かどうか
+fn is_var(ast: AST) -> bool {
+    match ast {
+        AST::Node{ kind: NodeKind::Var{ .. }, .. } => true,
+        _ => false,
+    }
+}
+
 impl CodeGenerator {
     // ファイルへの書き出し
     fn output(&mut self, s: &str) {
         writeln!(self.f, "{}",s).unwrap();
-    }
-
-    // 変数またはderef
-    fn is_local_var(&self, ast: AST) -> bool {
-        match ast {
-            AST::Node{ kind: NodeKind::Lvar{ .. }, .. } => true,
-            _ => false,
-        }
     }
 
     // exprからアセンブリを出力する
@@ -65,7 +72,7 @@ impl CodeGenerator {
                         self.output("# assign begin");
                         // 左辺のアドレスをスタックトップに詰む
                         match *l.clone() {
-                            AST::Node{ kind: NodeKind::Lvar{ .. }, .. } => self.gen_addr(*l),
+                            AST::Node{ kind: NodeKind::Var{ .. }, .. } => self.gen_addr(*l),
                             AST::Node{ kind: NodeKind::Deref, lhs: deref_l, .. } => self.gen_expr(*deref_l),
                             _ => panic!("代入式の左辺が間違っています"),
                         }
@@ -87,15 +94,15 @@ impl CodeGenerator {
                     },
                     // ローカル変数
                     // 左辺と右辺はNil
-                    NodeKind::Lvar{ .. } => {
-                        self.output("# Lvar begin");
+                    NodeKind::Var{ .. } => {
+                        self.output("# Var begin");
                         // 左辺値をスタックトップに積む
                         self.gen_addr(ast);
                         // rax <- 左辺値
                         self.output("    pop rax");
                         self.output("    mov rax, [rax]");
                         self.output("    push rax");
-                        self.output("# Lvar end");
+                        self.output("# Var end");
                         return;
                     }
                     NodeKind::Deref => {
@@ -107,7 +114,7 @@ impl CodeGenerator {
                     },
                     NodeKind::Addr => {
                         // *&xや*(&x+8)に対応する
-                        if self.is_local_var(*l.clone()) {
+                        if is_var(*l.clone()) {
                             self.gen_addr(*l);
                         } else {
                             self.gen_expr(*l);
@@ -161,134 +168,121 @@ impl CodeGenerator {
 
                 return;
             },
-            _ => ()
+            _ => panic!("cannot generated nil"), // Nil
         };
     }
 
     fn gen_stmt(&mut self, ast: AST) {
-        match ast.clone() {
-            AST::Node{ kind: k, lhs: l, .. } => {
-                match k {
-                    NodeKind::Return => {
-                        self.output("# return begin");
-                        self.output("# value begin");
-                        self.gen_expr(*l); // returnノードのrhsはNilを指す
-                        self.output("# value end");
-                        self.output("    pop rax");
-                        self.output("    mov rsp, rbp");
-                        self.output("    pop rbp");
-                        self.output("    ret"); // 簡単のためにretが複数出力されることがある
-                        self.output("# return end");
-                        return;
-                    },
-                    NodeKind::If{ cond: c, then: t, els: e } => {
-                        // elseなし
-                        match *e {
-                            // else あり
-                            AST::Node{ .. } => {
-                                let label_else = format!(".Lelse{}", self.label_cnt);
-                                self.label_cnt += 1;
-                                let label_end = format!(".Lelse{}", self.label_cnt);
-                                self.label_cnt += 1;
 
-                                self.gen_expr(*c);
-                                self.output("    pop rax");
-                                self.output("    cmp rax, 0");
-                                self.output(&format!("    je {}", label_else));
-                                self.gen_stmt(*t);
-                                self.output(&format!("    jmp {}", label_end));
-                                self.output(&format!("{}:", label_else));
-                                self.gen_stmt(*e);
-                                self.output(&format!("{}:", label_end));
-                                return;
-                            },
-                            // else なし
-                            _ => {
-                                let label = format!(".Lend{}", self.label_cnt);
-                                self.label_cnt += 1;
+        if is_nil(ast.clone()) { panic!("incorrect statement"); }
+        
 
-                                self.gen_expr(*c);
-                                self.output("    pop rax");
-                                self.output("    cmp rax, 0");
-                                self.output(&format!("    je {}", label));
-                                self.gen_stmt(*t);
-                                self.output(&format!("{}:", label));
-                                return;
-                            }
-                        };
-                    },
-                    NodeKind::While{ cond: c, proc: p } => {
-                        let label_begin = format!(".Lbegin{}", self.label_cnt);
+        match ast.kind() {
+            NodeKind::Return => {
+                self.output("# return begin");
+                self.output("# value begin");
+                self.gen_expr(*ast.lhs()); // returnノードのrhsはNilを指す
+                self.output("# value end");
+                self.output("    pop rax");
+                self.output("    mov rsp, rbp");
+                self.output("    pop rbp");
+                self.output("    ret"); // 簡単のためにretが複数出力されることがある
+                self.output("# return end");
+                return;
+            },
+            NodeKind::If{ cond: c, then: t, els: e } => {
+                // elseなし
+                match *e {
+                    // else あり
+                    AST::Node{ .. } => {
+                        let label_else = format!(".Lelse{}", self.label_cnt);
                         self.label_cnt += 1;
                         let label_end = format!(".Lelse{}", self.label_cnt);
                         self.label_cnt += 1;
 
-                        self.output(&format!("{}:", label_begin));
                         self.gen_expr(*c);
                         self.output("    pop rax");
                         self.output("    cmp rax, 0");
-                        self.output(&format!("    je {}", label_end));
-                        self.gen_stmt(*p);
-                        self.output(&format!("    jmp {}", label_begin));
+                        self.output(&format!("    je {}", label_else));
+                        self.gen_stmt(*t);
+                        self.output(&format!("    jmp {}", label_end));
+                        self.output(&format!("{}:", label_else));
+                        self.gen_stmt(*e);
                         self.output(&format!("{}:", label_end));
                         return;
                     },
-                    NodeKind::For{ a: expr_a, b: expr_b, c: expr_c, proc: p } => {
-                        let label_begin = format!(".Lbegin{}", self.label_cnt);
-                        self.label_cnt += 1;
-                        let label_end = format!(".Lend{}", self.label_cnt);
+                    // else なし
+                    _ => {
+                        let label = format!(".Lend{}", self.label_cnt);
                         self.label_cnt += 1;
 
-                        self.gen_expr(*expr_a);
-                        self.output(&format!("{}:", label_begin));
-                        self.gen_expr(*expr_b);
+                        self.gen_expr(*c);
                         self.output("    pop rax");
                         self.output("    cmp rax, 0");
-                        self.output(&format!("    je {}", label_end));
-                        self.gen_stmt(*p);
-                        self.gen_expr(*expr_c);
-                        self.output(&format!("    jmp {}", label_begin));
-                        self.output(&format!("{}:", label_end));
+                        self.output(&format!("    je {}", label));
+                        self.gen_stmt(*t);
+                        self.output(&format!("{}:", label));
                         return;
-                    },
-                    NodeKind::Block(vec) => {
-                        for ast in *vec {
-                            self.gen_stmt(ast);
-                        }
-                        return;
-                    },
-                    // 関数呼び出し
-                    NodeKind::FuncCall{ name: func_name, argv: args } => {
-                        // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
-                        // 引数をレジスタに格納する
-                        for i in 0..=5 {
-                            if args.len() > 5-i {
-                                self.gen_expr(args[5-i].clone());
-                                self.output("    pop rax");
-                                self.output(&format!("    mov {}, rax", ARGREG[5-i]));
-                            }
-                        }
-
-                        if args.len() > 6 { panic!("the number of arguments must be < 7")}
-                        
-                        self.output(&format!("    call {}", func_name));
-                        self.output("    push rax");
-                        return;
-                    },
-                    // 式からなる文
-                    _ => {
-                        self.gen_expr(ast);
-                    },
+                    }
                 };
             },
-            _ => panic!("unexpected node"),
+            NodeKind::For{ a: expr_a, b: expr_b, c: expr_c, proc: p } => {
+                let label_begin = format!(".Lbegin{}", self.label_cnt);
+                self.label_cnt += 1;
+                let label_end = format!(".Lend{}", self.label_cnt);
+                self.label_cnt += 1;
+                // Nilを許容
+                if !is_nil(*expr_a.clone()) { self.gen_expr(*expr_a); }
+                self.output(&format!("{}:", label_begin));
+                if !is_nil(*expr_b.clone()) {
+                    self.gen_expr(*expr_b);
+                    self.output("    pop rax");
+                    self.output("    cmp rax, 0");
+                    self.output(&format!("    je {}", label_end));
+                }
+                self.gen_stmt(*p);
+                if !is_nil(*expr_c.clone()) { self.gen_expr(*expr_c); }
+                self.output(&format!("    jmp {}", label_begin));
+                self.output(&format!("{}:", label_end));
+                return;
+            },
+            NodeKind::Block(vec) => {
+                for ast in *vec {
+                    self.gen_stmt(ast);
+                }
+                return;
+            },
+            // 関数呼び出し
+            NodeKind::FuncCall{ name: func_name, argv: args } => {
+                // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
+                // 引数をレジスタに格納する
+                for i in 0..=5 {
+                    if args.len() > 5-i {
+                        self.gen_expr(args[5-i].clone());
+                        self.output("    pop rax");
+                        self.output(&format!("    mov {}, rax", ARGREG[5-i]));
+                    }
+                }
+
+                if args.len() > 6 { panic!("the number of arguments must be < 7")}
+                
+                self.output(&format!("    call {}", func_name));
+                self.output("    push rax");
+                return;
+            },
+            // 式からなる文
+            NodeKind::ExprStmt(expr) => {
+                self.gen_expr(*expr);
+            },
+            _ => panic!("incorrect statement"),
         };
+
     }
 
     // Lvarノードのアドレスをプッシュする
     fn gen_addr(&mut self, ast: AST) {
         match ast {
-            AST::Node{ kind: NodeKind::Lvar{offset: ofs, ..}, .. } => {
+            AST::Node{ kind: NodeKind::Var{ offset: ofs, ..}, .. } => {
                 // ローカル変数のアドレスをスタックに積む
                 self.output("    mov rax, rbp");
                 self.output(&format!("    sub rax, {}", ofs));

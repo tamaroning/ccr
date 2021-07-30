@@ -25,20 +25,24 @@ pub enum TypeKind {
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
+    // --- Expression --- 
     Num(isize), // integer
     Assign, // = assignment
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
     Deref, Addr, // *, &
-    Lvar{ name: String, offset: usize }, // local variables(name, offset from rbp)
+    Var{ name: String, offset: usize }, // local variables(name, offset from rbp)
     FuncCall{ name: String, argv: Box<Vec<AST>> }, // fucntion call
 
-    DefineLvar{ name: String, ty: TypeKind },
+    DefineVar{ name: String, ty: TypeKind },
+
+    // --- Statement ---
+    ExprStmt(Box<AST>), // 式からなる文
+    Block(Box<Vec<AST>>), // {stmt*}ブロック stmtのVecをもつ
     Return, // return 戻り値はlhsを使う
     If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
     While{ cond: Box<AST>, proc: Box<AST> }, //while([cond(expr)]) [proc(stmt)]
     For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
-    Block(Box<Vec<AST>>), // {stmt*}ブロック stmtのVecをもつ
 
     Int, // int64_t
 }
@@ -51,6 +55,21 @@ pub enum AST {
         kind: NodeKind, // ノードの種類
         lhs: Box<AST>, // 左辺値
         rhs: Box<AST>, // 右辺値
+    }
+}
+
+impl AST {
+    pub fn kind(&self) -> NodeKind {
+        match self.clone() {
+            AST::Node{ kind: k, ..} => k,
+            _ => panic!("Nil doesn't have kind"),
+        }
+    }
+    pub fn lhs(&self) -> Box<AST> {
+        match self.clone() {
+            AST::Node{ lhs: l, ..} => l,
+            _ => panic!("Nil doesn't have lhs"),
+        }
     }
 }
 
@@ -138,9 +157,9 @@ impl Parser {
     }
 
     // 現在のトークンは指定された文字列のreservedトークンであるに違いないので読み進める
-    fn consume_expected(&mut self, string: &str) {
+    fn expected(&mut self, string: &str) {
         if !self.consume(string) {
-            panic!("unexpected token");
+            self.error_at("unexpected token");
         }
     }
 
@@ -149,24 +168,18 @@ impl Parser {
         match self.consume_any() {
             Token{ kind: TokenKind::Num(n) ,.. } => n,
             _ => {
-                panic!("number is expected");
+                self.error_at("number is expected");
+                0
             },
         }
     }
 
-    /*
     //エラー出力関数
-    fn error_at(&self, loc: usize, args: fmt::Arguments) {
-        println!("{}", self.input);
-        print!("{}"," ".repeat(loc));
-        println!("^ ");
-        print!("{}"," ".repeat(loc));
-        println!("{}", args);
-        println!("");
-
-        panic!("invalid input at character: {}", loc);
+    fn error_at(&self, string: &str) {
+        println!("{}", string);
+        panic!("error! pos: {}, token: {:?}", self.pos, self.cur_token());
     }
-    */
+
 
     // EBNFによる文法の生成
     // program = stmt*
@@ -191,14 +204,14 @@ impl Parser {
         // "return" expr ";" 
         if self.consume("return") {
             let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
-            self.consume_expected(";");
+            self.expected(";");
             return ast;
         }
         // "if" "(" expr ")" stmt ("else" stmt)?
         else if self.consume("if") {
-            self.consume_expected("(");
+            self.expected("(");
             let cond = self.expr();
-            self.consume_expected(")");
+            self.expected(")");
             let then = self.stmt();
             let mut els = AST::Nil;
             if self.consume("else") {
@@ -209,22 +222,23 @@ impl Parser {
         }
         // "while" "(" expr ")" stmt
         else if self.consume("while") {
-            self.consume_expected("(");
+            self.expected("(");
             let cond = self.expr();
-            self.consume_expected(")");
+            self.expected(")");
             let proc = self.stmt();
-            return AST::Node{ kind: NodeKind::While{ cond: Box::new(cond), proc: Box::new(proc) }, 
+            return AST::Node{ kind: NodeKind::For{ a: Box::new(AST::Nil),
+                b: Box::new(cond), c: Box::new(AST::Nil), proc: Box::new(proc) }, 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // "for" "(" expr? ";" expr? ";" expr? ")" stmt
         else if self.consume("for") {
-            self.consume_expected("(");
+            self.expected("(");
             let expr_a = self.expr();
             self.consume(";");
             let expr_b = self.expr();
             self.consume(";");
             let expr_c = self.expr();
-            self.consume_expected(")");
+            self.expected(")");
             let proc = self.stmt();
             return AST::Node{ kind: NodeKind::For{ a: Box::new(expr_a), b: Box::new(expr_b), c: Box::new(expr_c), 
                 proc: Box::new(proc) }, lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
@@ -241,13 +255,15 @@ impl Parser {
         // expr ";"
         else {
             let ast = self.expr();
-            self.consume_expected(";");
-            return ast;
+            self.expected(";");
+            return AST::Node{ kind: NodeKind::ExprStmt(Box::new(ast)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
     }
 
     // expr = assign
+    //      | () 後ろが;の場合のみOK
     fn expr(&mut self) -> AST {
+        if self.is(";") { return AST::Nil; }
         self.assign()
     }
 
@@ -361,9 +377,9 @@ impl Parser {
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
-            // exprに対応するのは Num,Reserved("("),Lvar,FuncCall
+            // exprに対応するのは Num,Reserved("("),Var,FuncCall
             let ast = self.expr();
-            self.consume_expected(")");
+            self.expected(")");
             return ast;
         }
         // num
@@ -396,7 +412,7 @@ impl Parser {
                 argv.push(self.expr()); 
             }
 
-            self.consume_expected(")");
+            self.expected(")");
             return AST::Node{ kind: NodeKind::FuncCall{ name: ident_name.clone(), argv: Box::new(argv) }, 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
@@ -405,13 +421,13 @@ impl Parser {
         match self.locals.get(&ident_name) {
             // 変数名がすでに登録済み
             Some(ofs) => {
-                return AST::Node{ kind: NodeKind::Lvar{ name: ident_name.clone(), offset: *ofs },
+                return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: *ofs },
                     lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             },
             // 変数名が未登録
             None => {
                 self.locals.insert(ident_name.clone(), self.offset);
-                let ret = AST::Node{ kind: NodeKind::Lvar{ name: ident_name.clone(), offset: self.offset },
+                let ret = AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: self.offset },
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
                 //d println!("{} offset: {}", var_name, self.offset);
                 self.offset += 8;
@@ -427,7 +443,8 @@ impl Parser {
             return TypeKind::Int;
         }
         else {
-            panic!("unexpected type")
+            self.error_at("unexpected type");
+            TypeKind::Int
         }
     }
 
@@ -435,7 +452,7 @@ impl Parser {
     /*
     fn declarator(&mut self) -> TypeKind {
         if self.consume("*") {
-            panic!("* is not implemented");
+            self.error_at("* is not implemented");
         } else {
             self.ident()
         }

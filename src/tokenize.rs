@@ -85,7 +85,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         };
 
         // invalid tokens
-        tokenizer.error_at(tokenizer.pos, format_args!("invalid token"));
+        tokenizer.error_at(&format!("invalid token"));
     }
     tokens.push(Token{ kind: TokenKind::Eof, pos: tokenizer.pos, string: String::new() });
     tokens
@@ -95,7 +95,7 @@ impl Tokenizer {
 
     // 先頭の文字にアクセスする
     fn next_char(&self) -> char {
-        if self.is_eof() { self.error_at(self.pos, format_args!("unexpected EOF")); }
+        if self.is_eof() { self.error_at(&format!("unexpected EOF")); }
         self.input[self.pos..].chars().next().unwrap()
     }
 
@@ -171,11 +171,10 @@ impl Tokenizer {
             '0'..='9' => true,
             _ => false,
         });
-
         match s.parse::<isize>() {
             Ok(i) => { return i; },
             Err(_) => {
-                self.error_at(self.pos, format_args!("invalid number"));
+                self.error_at(&format!("invalid number"));
                 return 0;
             }
         };
@@ -200,18 +199,19 @@ impl Tokenizer {
                 return Token{ kind: TokenKind::Keyword(keyword.clone()), pos: self.pos, string: keyword };
             }
         }
-        panic!("keyword is expected");
+        self.error_at(&format!("keyword is expected"));
+        panic!("");
     }
 
     //tokenize時のエラーを出力する
-    fn error_at(&self, loc: usize, args: fmt::Arguments) {
+    fn error_at(&self, string: &str) {
         println!("{}", self.input);
-        print!("{}"," ".repeat(loc));
+        print!("{}"," ".repeat(self.pos));
         println!("^ ");
-        print!("{}"," ".repeat(loc));
-        println!("{}", args);
+        print!("{}"," ".repeat(self.pos));
+        println!("{}", string);
         println!("");
 
-        panic!("invalid input at character: {}", loc);
+        panic!("invalid input at character: {}", self.pos);
     }
 }
