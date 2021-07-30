@@ -14,7 +14,7 @@ fn test_tokenize() {
 
 #[derive(Debug, Clone,PartialEq)]
 pub enum TokenKind {
-    Reserved(String), // keywords or punctuators
+    Reserved, // keywords or punctuators
     Num(isize), // integer literals(value)
     Ident(String), // identifiers(name) function name and variable name
     Keyword(String), // Keywords returnやifなど
@@ -25,6 +25,7 @@ pub enum TokenKind {
 pub struct Token {
     pub kind: TokenKind, // トークンの種類
     pos: usize, // トークンの開始位置
+    pub string: String,
 }
 
 #[derive(Debug)]
@@ -45,7 +46,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // numeric literals
         match tokenizer.next_char() {
             '0'..='9' => {
-                tokens.push(Token{ kind: TokenKind::Num(tokenizer.read_number()), pos: tokenizer.pos });
+                tokens.push(Token{ kind: TokenKind::Num(tokenizer.read_number()), pos: tokenizer.pos, string: String::new() });
                 continue;
             },
             _ => (),
@@ -59,22 +60,25 @@ pub fn tokenize(input: String) -> Vec<Token> {
 
         // identifiers 
         if tokenizer.is_al()  {
-            tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
+            let ident = tokenizer.read_ident();
+            tokens.push(Token{ kind: TokenKind::Ident(ident.clone()), pos: tokenizer.pos, string: ident });
             continue;
         }
 
         // punctuators
         if tokenizer.starts_with("==") || tokenizer.starts_with("!=") ||
                     tokenizer.starts_with("<=") || tokenizer.starts_with(">=") {
-            tokens.push(Token{ kind: TokenKind::Reserved(tokenizer.read_nchars(2))
-                    , pos: tokenizer.pos });
+            let punc = tokenizer.read_nchars(2);
+            tokens.push(Token{ kind: TokenKind::Reserved,
+                pos: tokenizer.pos, string: punc });
             continue;
         }
         match tokenizer.next_char() {
             '!'|'"'|'#'|'$'|'%'|'&'|'('|')'|'*'|'+'|','|'-'|'.'|'/'|':'|';'|'<'|'='|
                     '>'|'?'|'@'|'['|'\\'|']'|'^'|'_'|'`'|'{'|'|'|'}'|'~' => {
-                tokens.push(Token{ kind: TokenKind::Reserved(tokenizer.read_nchars(1))
-                        , pos: tokenizer.pos });
+                    let punc = tokenizer.read_nchars(1);
+                tokens.push(Token{ kind: TokenKind::Reserved, 
+                    pos: tokenizer.pos, string: punc });
                 continue;
             },
             _ => (),
@@ -83,7 +87,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // invalid tokens
         tokenizer.error_at(tokenizer.pos, format_args!("invalid token"));
     }
-    tokens.push(Token{ kind: TokenKind::Eof, pos: tokenizer.pos });
+    tokens.push(Token{ kind: TokenKind::Eof, pos: tokenizer.pos, string: String::new() });
     tokens
 }
 
@@ -192,7 +196,8 @@ impl Tokenizer {
     fn read_keyword(&mut self) -> Token {
         for i in 0..KEYWORD.len() {
             if self.starts_with(KEYWORD[i]) {
-                return Token{ kind: TokenKind::Keyword(self.read_nchars(KEYWORD[i].len())), pos: self.pos };
+                let keyword = self.read_nchars(KEYWORD[i].len());
+                return Token{ kind: TokenKind::Keyword(keyword.clone()), pos: self.pos, string: keyword };
             }
         }
         panic!("keyword is expected");

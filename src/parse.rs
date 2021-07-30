@@ -89,6 +89,16 @@ impl Parser {
         }
     }
 
+    // 現在のトークンが指定された文字列のトークンに一致するか判定する
+    fn is(&self, string: &str) -> bool {
+        match self.cur_token() {
+            Token{ string: t, .. } if t == string  => {
+                true
+            },
+            _ => false,
+        }
+    }
+
     // 現在のトークンがNumか判定する
     fn is_num(&self) -> bool {
         match self.cur_token() {
@@ -100,7 +110,7 @@ impl Parser {
     }
 
     fn is_expr(&self) -> bool {
-        if self.is_cur_reserved("+") | self.is_cur_reserved("-") { return true; }
+        if self.is("+") | self.is("-") { return true; }
         return match self.cur_token() {
             Token{ kind: TokenKind::Ident(_), .. } | Token{ kind: TokenKind::Num(_), .. } => true,
             _ => false,
@@ -119,29 +129,7 @@ impl Parser {
     // 一致しなければfalseを返す
     fn consume(&mut self, string: &str) -> bool {
         match self.cur_token() {
-            Token{ kind: TokenKind::Reserved(t) ,.. } if t == string  => {
-                self.consume_any();
-                true
-            },
-            _ => false,
-        }
-    }
-
-    // 現在のトークンが指定された文字列のreservedトークンに一致すれば、trueを返す
-    // 一致しなければfalseを返す
-    fn is_cur_reserved(&self, string: &str) -> bool {
-        match self.cur_token() {
-            Token{ kind: TokenKind::Reserved(t) ,.. } if t == string  => {
-                true
-            },
-            _ => false,
-        }
-    }
-
-    // consumeの引数をTokenKindに置き換えたもの
-    fn consume_keyword(&mut self, string: &str) -> bool {
-        match self.cur_token() {
-            Token{ kind: TokenKind::Keyword(s), ..} if s == string.to_string() => {
+            Token{ string: t ,.. } if t == string  => {
                 self.consume_any();
                 true
             },
@@ -201,26 +189,26 @@ impl Parser {
     //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
-        if self.consume_keyword("return") {
+        if self.consume("return") {
             let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
             self.consume_expected(";");
             return ast;
         }
         // "if" "(" expr ")" stmt ("else" stmt)?
-        else if self.consume_keyword("if") {
+        else if self.consume("if") {
             self.consume_expected("(");
             let cond = self.expr();
             self.consume_expected(")");
             let then = self.stmt();
             let mut els = AST::Nil;
-            if self.consume_keyword("else") {
+            if self.consume("else") {
                 els = self.stmt();
             }
             return AST::Node{ kind: NodeKind::If{ cond: Box::new(cond), then: Box::new(then), els: Box::new(els)}, 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // "while" "(" expr ")" stmt
-        else if self.consume_keyword("while") {
+        else if self.consume("while") {
             self.consume_expected("(");
             let cond = self.expr();
             self.consume_expected(")");
@@ -229,7 +217,7 @@ impl Parser {
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
         // "for" "(" expr? ";" expr? ";" expr? ")" stmt
-        else if self.consume_keyword("for") {
+        else if self.consume("for") {
             self.consume_expected("(");
             let expr_a = self.expr();
             self.consume(";");
@@ -435,7 +423,7 @@ impl Parser {
 
     // declspec = "int"
     fn declspec(&mut self) -> TypeKind {
-        if self.consume_keyword("int") {
+        if self.consume("int") {
             return TypeKind::Int;
         }
         else {
