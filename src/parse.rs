@@ -102,8 +102,7 @@ impl Parser {
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
-        //d 
-        println!("consumed index: {}, Token: {:?}", self.pos, ret);
+        //d println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -382,7 +381,6 @@ impl Parser {
     // ident : function name or local variable name
     fn ident(&mut self) -> AST {
 
-        println!("{:?}",self.cur_token());
         let ident_name = match self.consume_any() {
             Token{ kind: TokenKind::Ident(s), .. } => s,
             _ => panic!("unexpected token"),

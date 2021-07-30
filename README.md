@@ -39,7 +39,8 @@ $ ./test.sh
 
 # Implemented features
 - Numeric literals (only signed integer) (ex: 0, 24, +4, -699)
-- Basic arithmetic operatiors (+, -, *, /)
+- Basic arithmetic operators (+, -, *, /)
+- Dereference and address operators (*, &)
 - Comparison operators (==, !=, </>, <=/>=)
 - Local variables (No need to declare)
 - Return statement
@@ -83,8 +84,7 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [x] Step12 if-else, for, while
 - [x] Step13 {}ブロック
 - [x] Step14 関数呼び出し
-- [ ] 単項*と& (derefとaddr)
-- [ ] ポインタに関する演算
+- [x] 単項*と& (derefとaddr)
 - [ ] Step15 関数定義
 
 ##  Refactoring and improvement
