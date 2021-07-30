@@ -29,7 +29,6 @@ sum = 0;
 for (; sum <= 10; sum = sum + 1) {
 }
 return sum;
-
 '
 
 echo OK

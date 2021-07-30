@@ -1,4 +1,8 @@
 sum = 0;
-for (; sum <= 10; sum = sum + 1) {
+for (i = 1; i <= 3; i = i + 1) {
+    sq = square(i);
+    dump(sq);
+    sum = sum + sq;
 }
-return sum;
+dump(sum);
+return 0;

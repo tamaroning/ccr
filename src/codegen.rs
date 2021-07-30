@@ -63,7 +63,6 @@ impl CodeGenerator {
     // exprからアセンブリを出力する
     pub fn gen_expr(&mut self, ast: AST) {
         match ast.clone() {
-
             AST::Node{ kind: k, lhs: l, rhs: r } => {
                 match k {
                     // 代入式
@@ -84,6 +83,24 @@ impl CodeGenerator {
                         self.output("    mov [rax], rdi");
                         self.output("    push rdi");
                         self.output("# assign end");
+                        return;
+                    },
+                    // 関数呼び出し
+                    NodeKind::FuncCall{ name: func_name, argv: args } => {
+                        // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
+                        // 引数をレジスタに格納する
+                        for i in 0..=5 {
+                            if args.len() > 5-i {
+                                self.gen_expr(args[5-i].clone());
+                                self.output("    pop rax");
+                                self.output(&format!("    mov {}, rax", ARGREG[5-i]));
+                            }
+                        }
+
+                        if args.len() > 6 { panic!("the number of arguments must be < 7")}
+                        
+                        self.output(&format!("    call {}", func_name));
+                        self.output("    push rax");
                         return;
                     },
                     // 整数
@@ -168,7 +185,7 @@ impl CodeGenerator {
 
                 return;
             },
-            _ => panic!("cannot generated nil"), // Nil
+            _ => (),//panic!("expr must not be nil"), // Nil
         };
     }
 
@@ -250,24 +267,6 @@ impl CodeGenerator {
                 for ast in *vec {
                     self.gen_stmt(ast);
                 }
-                return;
-            },
-            // 関数呼び出し
-            NodeKind::FuncCall{ name: func_name, argv: args } => {
-                // 関数呼び出し直前にrspを16の倍数にアラインするアセンブリをかく
-                // 引数をレジスタに格納する
-                for i in 0..=5 {
-                    if args.len() > 5-i {
-                        self.gen_expr(args[5-i].clone());
-                        self.output("    pop rax");
-                        self.output(&format!("    mov {}, rax", ARGREG[5-i]));
-                    }
-                }
-
-                if args.len() > 6 { panic!("the number of arguments must be < 7")}
-                
-                self.output(&format!("    call {}", func_name));
-                self.output("    push rax");
                 return;
             },
             // 式からなる文
