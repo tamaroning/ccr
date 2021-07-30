@@ -1,12 +1,13 @@
 // parse.rs
 
+#[allow(unused_imports)]
 use std::fmt;
 use std::collections::HashMap;
 
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
+#[allow(unused_imports)]
 use crate::tokenize::tokenize;
-
 
 #[test]
 fn test_parse() {
@@ -17,21 +18,29 @@ fn test_parse() {
 }
 
 #[derive(Debug, Clone)]
+pub enum TypeKind {
+    Int,
+    Ptr,
+}
+
+#[derive(Debug, Clone)]
 pub enum NodeKind {
+    Num(isize), // integer
+    Assign, // = assignment
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
     Deref, Addr, // *, &
-    Assign, // =
-    
-    Lvar{ name: String, offset: usize }, // ローカル変数(変数名, rbpからのオフセット)
-    FuncCall{ name: String, argv: Box<Vec<AST>> }, // 関数呼び出し
-    Num(isize), // 整数
-    Return, // return文 戻り値はlhsを使う
-    If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond])[then] else [else]　cond(expr), then(stmt), else(stmt)
-    While{ cond: Box<AST>, proc: Box<AST> }, //while([cond]) [proc]
-    For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for文 for([A];[B];[C]) [D]
+    Lvar{ name: String, offset: usize }, // local variables(name, offset from rbp)
+    FuncCall{ name: String, argv: Box<Vec<AST>> }, // fucntion call
 
-    Block(Box<Vec<AST>>), // {}ブロック
+    DefineLvar{ name: String, ty: TypeKind },
+    Return, // return 戻り値はlhsを使う
+    If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
+    While{ cond: Box<AST>, proc: Box<AST> }, //while([cond(expr)]) [proc(stmt)]
+    For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
+    Block(Box<Vec<AST>>), // {stmt*}ブロック stmtのVecをもつ
+
+    Int, // int64_t
 }
 
 // Abstract syntax tree
@@ -184,6 +193,7 @@ impl Parser {
     }
 
     // stmt = expr ";" 
+    //      | declararion ";"
     //      | "{" stmt* "}"
     //      | "return" expr ";"
     //      | "if" "(" expr ")" stmt ("else" stmt)?
@@ -422,6 +432,29 @@ impl Parser {
         };
             
     }
+
+    // declspec = "int"
+    fn declspec(&mut self) -> TypeKind {
+        if self.consume_keyword("int") {
+            return TypeKind::Int;
+        }
+        else {
+            panic!("unexpected type")
+        }
+    }
+
+    // declarator = "*"* ident
+    /*
+    fn declarator(&mut self) -> TypeKind {
+        if self.consume("*") {
+            panic!("* is not implemented");
+        } else {
+            self.ident()
+        }
+    }
+    */
+
+    // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 
 }
 

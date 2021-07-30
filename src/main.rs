@@ -6,7 +6,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::env;
-//use std::fmt;
+#[allow(unused_imports)]
+use std::fmt;
 
 mod tokenize;
 mod parse;
@@ -41,13 +42,13 @@ fn main() {
     //println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
     //println!("Done");
-    //println!("{:?}", tokens);
+    println!("{:?}", tokens);
 
     // トークンの配列からASTを作成
     //println!("Parsing tokens...");
     let asts = parse::parse(tokens);
     //println!("Done");
-    //println!("{:?}", asts);
+    println!("{:?}", asts);
     
     // ASTからアセンブリを生成して,tmp.sに書き込む
     //println!("Generating assembly...");

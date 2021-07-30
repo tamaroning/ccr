@@ -39,8 +39,6 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
 
 }
 
-// リファクタリング
-// CodeGeneratorを用いてcodegen関数を簡単にする
 impl CodeGenerator {
     // ファイルへの書き出し
     fn output(&mut self, s: &str) {
@@ -119,12 +117,10 @@ impl CodeGenerator {
                     _ => (),
                 };
                 
-                // rdi <- 右辺値
-                // rax <- 左辺値
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi");
-                self.output("    pop rax");
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
 
                 // rax <- 右辺値と左辺値の演算結果
                 match k {
@@ -171,7 +167,7 @@ impl CodeGenerator {
 
     fn gen_stmt(&mut self, ast: AST) {
         match ast.clone() {
-            AST::Node{ kind: k, lhs: l, rhs: r } => {
+            AST::Node{ kind: k, lhs: l, .. } => {
                 match k {
                     NodeKind::Return => {
                         self.output("# return begin");
@@ -294,8 +290,6 @@ impl CodeGenerator {
         match ast {
             AST::Node{ kind: NodeKind::Lvar{offset: ofs, ..}, .. } => {
                 // ローカル変数のアドレスをスタックに積む
-                // rax <- rbp - ofs
-                // push rax
                 self.output("    mov rax, rbp");
                 self.output(&format!("    sub rax, {}", ofs));
                 self.output("    push rax");

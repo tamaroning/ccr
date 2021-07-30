@@ -1,6 +1,6 @@
 # ccr : C Compiler written in Rust
 Ccr is a toy C compiler written in Rust language, which I am making in order to understand compilers and Rust.  
-This software supports a small subset of C and outputs GNU assembler.  
+This software supports a small subset of C and outputs x64 GNU assembler.  
 Ccr is not so fast, but the source is easy for beginners to read.   
 
 # Usage
@@ -84,7 +84,7 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [x] Step12 if-else, for, while
 - [x] Step13 {}ブロック
 - [x] Step14 関数呼び出し
-- [x] 単項*と& (derefとaddr)
+- [x] 単項*と& (derefとaddr)　(現在はbyte単位での演算が可能)
 - [ ] Step15 関数定義
 
 ##  Refactoring and improvement
@@ -93,6 +93,7 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [x] 標準出力に実行中の情報を出力できるようにする
 - [ ] コード生成時に検出されるエラー出力の強化
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
+- [ ] ポインタの演算 (intのポインタpにNを足すと,N要素先のintを指すようにする, つまり+/-演算子のオーバーロード)
 
 # References
 0. Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)  

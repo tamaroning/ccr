@@ -1,6 +1,9 @@
 // tokenize.rs
 
+#[allow(unused_imports)]
 use std::fmt;
+
+const KEYWORD: [&'static str; 6] = ["return", "if", "else", "for", "while", "int"];
 
 #[test]
 fn test_tokenize() {
@@ -14,7 +17,7 @@ pub enum TokenKind {
     Reserved(String), // keywords or punctuators
     Num(isize), // integer literals(value)
     Ident(String), // identifiers(name) function name and variable name
-    Keyword(String), // returnやifなどの予約語
+    Keyword(String), // Keywords returnやifなど
     Eof, // end of the 
 }
 
@@ -54,13 +57,11 @@ pub fn tokenize(input: String) -> Vec<Token> {
             continue;
         }
 
-        // identifiers (変数名)
+        // identifiers 
         if tokenizer.is_al()  {
-            // 変数名
             tokens.push(Token{ kind: TokenKind::Ident(tokenizer.read_ident()), pos: tokenizer.pos });
             continue;
         }
-
 
         // punctuators
         if tokenizer.starts_with("==") || tokenizer.starts_with("!=") ||
@@ -116,9 +117,8 @@ impl Tokenizer {
     // 先頭の文字列がkeywordかどうか返す
     fn is_keyword(&mut self) -> bool {
         if !self.is_al(){ return false; }
-        if self.starts_with("return")|self.starts_with("if")|self.starts_with("else")|
-                self.starts_with("while")|self.starts_with("for"){
-            return true;
+        for i in 0..KEYWORD.len() {
+            if self.starts_with(KEYWORD[i]){ return true; }
         }
         false
     }
@@ -190,15 +190,12 @@ impl Tokenizer {
     // 予約語を読む
     // return4;なども正しい入力と見做されることに注意
     fn read_keyword(&mut self) -> Token {
-        let keyword;
-        if self.starts_with("return"){ keyword = self.read_nchars(6); }
-        else if self.starts_with("if"){ keyword = self.read_nchars(2); }
-        else if self.starts_with("else"){ keyword = self.read_nchars(4); }
-        else if self.starts_with("while"){ keyword = self.read_nchars(5); }
-        else if self.starts_with("for"){ keyword = self.read_nchars(3); }
-        else { panic!("keyword is expected"); }
-        
-        return Token{ kind: TokenKind::Keyword(keyword), pos: self.pos };
+        for i in 0..KEYWORD.len() {
+            if self.starts_with(KEYWORD[i]) {
+                return Token{ kind: TokenKind::Keyword(self.read_nchars(KEYWORD[i].len())), pos: self.pos };
+            }
+        }
+        panic!("keyword is expected");
     }
 
     //tokenize時のエラーを出力する
