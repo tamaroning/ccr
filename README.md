@@ -6,7 +6,8 @@ Ccr is not so fast, but the source is easy for beginners to read.
 # Usage
 ## Compile ccr
 To use ccr, run the following scripts:
-```
+
+```sh
 $ git clone https://github.com/tamaroning/ccr
 $ cd ccr
 $ make
@@ -14,26 +15,30 @@ $ make
 
 ## Run
 Compile text(.c) file:  
-```
+
+```sh
 $ ./ccr [file path]
 ```
 By default, the assembly is written to tmp.s.  
   
 Then assemble tmp.s into an executable binary:  
-```
+
+```sh
 $ cc -o tmp tmp.s
 $ ./tmp
 ```
 
 Check the return value:  
-```
+
+```sh
 $ echo $?
 ```
 Make sure that the return value is cure in the range of 0~255  
 
 ## Test
 You can run test.sh to execute the demo:  
-```
+
+```sh
 $ ./test.sh
 ```
 
@@ -48,8 +53,9 @@ $ ./test.sh
 - Control sytax (if-else, for, while)
 
 ## Example 1
-Ccr can compile programs like the following:  
-```
+Ccr can compile programs like the following: 
+
+```c
 sum = 0;
 width = 3;
 for ( i = 1; i <= width; i = i + 1) {
@@ -64,7 +70,7 @@ else return 0;
 
 ## Example 2
 You can use functions which is defined in other object files:  
-```
+```c
 for(i = 0; i < 10; i = i + 1) {
     foo();
 }
@@ -84,7 +90,10 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [x] Step12 if-else, for, while
 - [x] Step13 {}ブロック
 - [x] Step14 関数呼び出し
-- [x] 単項*と& (derefとaddr)　(現在はbyte単位での演算が可能)
+- [x] 単項*と& (derefとaddr)
+    - 現在はbyte単位での演算が可能
+- [ ] 型 (int, int*, int**, ...)
+- [ ] 定義,宣言
 - [ ] Step15 関数定義
 
 ##  Refactoring and improvement
