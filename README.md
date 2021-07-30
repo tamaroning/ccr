@@ -107,6 +107,7 @@ And you need to link the .o file to the assembly dumped by ccr.
     - 後ろに;が続く場合のみ許容
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
 - [ ] ポインタの演算の修正 (intのポインタpにNを足すと,N要素先のintを指すようにする, つまり+/-演算子のオーバーロード)
+- [ ] 6つ以上の引数の関数呼び出し
 
 # References
 0. Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)  

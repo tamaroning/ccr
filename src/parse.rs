@@ -37,9 +37,9 @@ pub enum NodeKind {
     DefineVar{ name: String, ty: TypeKind },
 
     // --- Statement ---
-    ExprStmt(Box<AST>), // 式からなる文
-    Block(Box<Vec<AST>>), // {stmt*}ブロック stmtのVecをもつ
-    Return, // return 戻り値はlhsを使う
+    ExprStmt(Box<AST>),
+    Block(Box<Vec<AST>>), // {stmt*}block
+    Return, // return statement, lhs used as return value
     If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
     While{ cond: Box<AST>, proc: Box<AST> }, //while([cond(expr)]) [proc(stmt)]
     For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
@@ -52,9 +52,9 @@ pub enum NodeKind {
 pub enum AST {
     Nil, 
     Node{
-        kind: NodeKind, // ノードの種類
-        lhs: Box<AST>, // 左辺値
-        rhs: Box<AST>, // 右辺値
+        kind: NodeKind, // Node kind
+        lhs: Box<AST>, // left side value
+        rhs: Box<AST>, // right side value
     }
 }
 
@@ -73,7 +73,6 @@ impl AST {
     }
 }
 
-// isizeからNumノードを作成する
 fn new_node_num(val: isize) -> AST {
     AST::Node{ kind: NodeKind::Num(val), 
         lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
@@ -81,10 +80,10 @@ fn new_node_num(val: isize) -> AST {
 
 #[derive(Debug)]
 struct Parser {
-    tokens: Vec<Token>, // Tokenリスト
-    pos: usize, // 現在のtokenのインデックス
-    offset: usize,
-    locals: HashMap<String, usize>, // ローカル変数<name, offset>
+    tokens: Vec<Token>, // Token list
+    pos: usize, // current index of tokens
+    offset: usize, // current stack frame size (increase by 8 when a new local var is defined)
+    locals: HashMap<String, usize>, // local variables list <name, offset>
 }
 
 pub fn parse(tokens: Vec<Token>) -> Vec<AST> {
@@ -93,22 +92,12 @@ pub fn parse(tokens: Vec<Token>) -> Vec<AST> {
 }
 
 impl Parser {
-    // 現在のトークンを読む(読み進めない)
+    // read the current token (don't read forward)
     fn cur_token(&self) -> Token {
         self.tokens[self.pos].clone()
     }
 
-    // 現在のトークンがEOFか判定する
-    fn is_eof(&self) -> bool {
-        match self.cur_token() {
-            Token{ kind: TokenKind::Eof ,.. } => {
-                true
-            },
-            _ => false,
-        }
-    }
-
-    // 現在のトークンが指定された文字列のトークンに一致するか判定する
+    // check if the current token matches the token with the specified string
     fn is(&self, string: &str) -> bool {
         match self.cur_token() {
             Token{ string: t, .. } if t == string  => {
@@ -118,7 +107,15 @@ impl Parser {
         }
     }
 
-    // 現在のトークンがNumか判定する
+    fn is_eof(&self) -> bool {
+        match self.cur_token() {
+            Token{ kind: TokenKind::Eof ,.. } => {
+                true
+            },
+            _ => false,
+        }
+    }
+
     fn is_num(&self) -> bool {
         match self.cur_token() {
             Token{ kind: TokenKind::Num(_) ,.. } => {
@@ -136,7 +133,7 @@ impl Parser {
         };
     }
 
-    // 現在のトークンを読み進めて、それを返す
+    // read forward the current token and return it 
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
@@ -174,14 +171,14 @@ impl Parser {
         }
     }
 
-    //エラー出力関数
     fn error_at(&self, string: &str) {
         println!("{}", string);
         panic!("error! pos: {}, token: {:?}", self.pos, self.cur_token());
     }
 
 
-    // EBNFによる文法の生成
+    // ----- Description of grammar by EBNF -----
+
     // program = stmt*
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
@@ -261,7 +258,7 @@ impl Parser {
     }
 
     // expr = assign
-    //      | () 後ろが;の場合のみOK
+    //      | blank expression (OK only if the current token matches to ";") 
     fn expr(&mut self) -> AST {
         if self.is(";") { return AST::Nil; }
         self.assign()
@@ -372,12 +369,11 @@ impl Parser {
     }
 
     // primary = num | "(" expr ")"
-    //         | ident ローカル変数
-    //         | ident "(" ")" 引数なし関数呼び出し 
+    //         | ident (variables and function calls)
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
-            // exprに対応するのは Num,Reserved("("),Var,FuncCall
+
             let ast = self.expr();
             self.expected(")");
             return ast;
@@ -386,13 +382,14 @@ impl Parser {
         else if self.is_num() {
             return new_node_num(self.consume_number());
         }
-        // ident 関数名または変数名
+        // ident (variables and function calls)
         else {
             return self.ident();
         }
     }
 
-    // ident : function name or local variable name
+    // ident = ident (variables)
+    //       | ident "(" (expr ",")* ")" (function calls)
     fn ident(&mut self) -> AST {
 
         let ident_name = match self.consume_any() {
@@ -400,11 +397,10 @@ impl Parser {
             _ => panic!("unexpected token"),
         };
         
-        // 関数呼び出し
-        // func_name"(" (expr ",")* ")"
+        // func_name"(" (expr ",")* ")" (function call)
         if self.consume("(") {
             let mut argv: Vec<AST>= Vec::new();
-            
+
             if self.is_expr() { argv.push(self.expr()); }
             loop {
                 if !self.consume(",") { break; }
@@ -417,14 +413,14 @@ impl Parser {
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
 
-        // ローカル変数
+        // variables
         match self.locals.get(&ident_name) {
-            // 変数名がすでに登録済み
+            // variable names are already registered
             Some(ofs) => {
                 return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: *ofs },
                     lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             },
-            // 変数名が未登録
+            // not registered
             None => {
                 self.locals.insert(ident_name.clone(), self.offset);
                 let ret = AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: self.offset },

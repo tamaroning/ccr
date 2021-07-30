@@ -21,36 +21,36 @@ fn main() {
         panic!("invalid argument count.");
     }
 
-    // 入力ファイルを準備する
+    // prepare the source file
     let src_path = Path::new(&argv[1]);
     let src_display = src_path.display();
 
-    // pathを読み込み専用で開く
+    // open path as read-only
     let mut src_file = match File::open(&src_path) {
         Err(why) => panic!("couldn't open {}: {}", src_display, why.to_string()),
         Ok(file) => file,
     };
 
-    // ファイルの中身を読み込む
+    // load the content of the soure file
     let mut src_string = String::new();
     match src_file.read_to_string(&mut src_string) {
         Err(why) => panic!("couldn't read {}: {}", src_display, why.to_string()),
         Ok(_) => print!("{} contains:\n{}", src_display, src_string),
     }
 
-    // ソースコードをトークナイズする
+    // tokenize the source code
     //println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
     //println!("Done");
     println!("{:?}", tokens);
 
-    // トークンの配列からASTを作成
+    // generate AST with Token list
     //println!("Parsing tokens...");
     let asts = parse::parse(tokens);
     //println!("Done");
     println!("{:?}", asts);
     
-    // ASTからアセンブリを生成して,tmp.sに書き込む
+    // generate the assembly with AST list, then write it to tmp.s
     //println!("Generating assembly...");
     codegen::codegen(asts, "tmp.s");
     //println!("Done");

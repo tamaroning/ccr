@@ -17,15 +17,15 @@ pub enum TokenKind {
     Reserved, // keywords or punctuators
     Num(isize), // integer literals(value)
     Ident(String), // identifiers(name) function name and variable name
-    Keyword(String), // Keywords returnやifなど
-    Eof, // end of the 
+    Keyword(String), // Keywords (return, if, ...)
+    Eof, // end of the tokens
 }
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    pub kind: TokenKind, // トークンの種類
-    pos: usize, // トークンの開始位置
-    pub string: String,
+    pub kind: TokenKind, // Token kind
+    pos: usize, // start positon of the token
+    pub string: String, // token string
 }
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
             _ => (),
         };
 
-        // 予約語
+        // keywords (reserved words)
         if tokenizer.is_keyword() {
             tokens.push(tokenizer.read_keyword());                
             continue;
@@ -83,8 +83,6 @@ pub fn tokenize(input: String) -> Vec<Token> {
             },
             _ => (),
         };
-
-        // invalid tokens
         tokenizer.error_at(&format!("invalid token"));
     }
     tokens.push(Token{ kind: TokenKind::Eof, pos: tokenizer.pos, string: String::new() });
@@ -93,7 +91,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
 
 impl Tokenizer {
 
-    // 先頭の文字にアクセスする
+    // read the next character
     fn next_char(&self) -> char {
         if self.is_eof() { self.error_at(&format!("unexpected EOF")); }
         self.input[self.pos..].chars().next().unwrap()
@@ -118,7 +116,7 @@ impl Tokenizer {
         }
     }
 
-    // 先頭の文字列がkeywordかどうか返す
+    // check if the first string matches to the specified string
     fn is_keyword(&mut self) -> bool {
         if !self.is_al(){ return false; }
         for i in 0..KEYWORD.len() {
@@ -127,7 +125,7 @@ impl Tokenizer {
         false
     }
 
-    // 1文字読み進める
+    // read forward one character
     fn read_char(&mut self) -> char {
         let mut iter = self.input[self.pos..].char_indices();
         let (_, cur_char) = iter.next().unwrap();
@@ -136,7 +134,7 @@ impl Tokenizer {
         return cur_char;
     }
 
-    // n文字読み進める
+    // read forward n characters
     fn read_nchars(&mut self, n: usize) -> String {
         let mut chars = Vec::new();
         for _ in 0..n {
@@ -150,7 +148,7 @@ impl Tokenizer {
         self.input[self.pos..].starts_with(s)
     }
 
-    // 条件が満たされる間だけ文字を読む
+    // read forward while the condition is satisfied
     fn read_while<F>(&mut self, test: F) -> String
         where F: Fn(char) -> bool {
             let mut result = String::new();
@@ -160,12 +158,12 @@ impl Tokenizer {
             return result;
     }
 
-    // 空白と改行を読む
+    // read forward whitespaces and LF
     fn read_whitespace(&mut self) {
         self.read_while(char::is_whitespace);
     }
 
-    // 非負整数を読む
+    // read forward non-negative integer
     fn read_number(&mut self) -> isize {
         let s = self.read_while(|c| match c {
             '0'..='9' => true,
@@ -180,7 +178,6 @@ impl Tokenizer {
         };
     }
 
-    // ローカル変数の文字列を読む
     fn read_ident(&mut self) -> String {
         if !self.is_al() { panic!("variable name must begin with alphabet or underscore"); }
         let s = self.read_while(|c| match c {
@@ -190,8 +187,8 @@ impl Tokenizer {
         s
     }
 
-    // 予約語を読む
-    // return4;なども正しい入力と見做されることに注意
+    // read forward keywords
+    // Todo return4;なども正しい入力と見做されることに注意
     fn read_keyword(&mut self) -> Token {
         for i in 0..KEYWORD.len() {
             if self.starts_with(KEYWORD[i]) {
@@ -203,7 +200,6 @@ impl Tokenizer {
         panic!("");
     }
 
-    //tokenize時のエラーを出力する
     fn error_at(&self, string: &str) {
         println!("{}", self.input);
         print!("{}"," ".repeat(self.pos));
