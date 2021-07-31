@@ -10,3 +10,11 @@ int dump(uint64_t a) {
 int square(uint64_t a) {
     return a*a;
 }
+
+void test() {
+    int a;
+}
+
+void test2() {
+    int a = 0;
+}

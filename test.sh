@@ -25,10 +25,9 @@ assert() {
 }
 
 assert 11 '
-sum = 0;
-for (; sum <= 10; sum = sum + 1) {
-}
-return sum;
+int sum = 0;
+int a = sum +11, b, c;
+return a;
 '
 
 echo OK

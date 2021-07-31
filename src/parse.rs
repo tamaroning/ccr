@@ -11,7 +11,7 @@ use crate::tokenize::tokenize;
 
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("Foo(+1,a,b);"));
+    let tokens = tokenize(String::from("int a,b;int c=a;"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -19,32 +19,37 @@ fn test_parse() {
 
 #[derive(Debug, Clone)]
 pub enum TypeKind {
-    Int,
-    Ptr,
+    Int, // Todo now is the same as int64_t
+    Ptr(Box<TypeKind>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Type {
+    kind: TypeKind,
+    name: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
     // --- Expression --- 
-    Num(isize), // integer
-    Assign, // = assignment
+    Num(isize), // integers
+    Assign, // = (assignment)
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
     Deref, Addr, // *, &
-    Var{ name: String, offset: usize }, // local variables(name, offset from rbp)
-    FuncCall{ name: String, argv: Box<Vec<AST>> }, // fucntion call
+    Var{ name: String, offset: usize }, // local variables (offset from rbp)
+    FuncCall{ name: String, argv: Box<Vec<AST>> }, // function call
 
-    DefineVar{ name: String, ty: TypeKind },
+    //DeclareVar{ dec: Box<Vec<(Type, AST)>> }, // declaretion of variables (Type of var, initial assignment)
 
     // --- Statement ---
     ExprStmt(Box<AST>),
-    Block(Box<Vec<AST>>), // {stmt*}block
-    Return, // return statement, lhs used as return value
+    Block(Box<Vec<AST>>), // {} block
+    Return, // return statement, lhs used as return values
     If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
     While{ cond: Box<AST>, proc: Box<AST> }, //while([cond(expr)]) [proc(stmt)]
     For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
 
-    Int, // int64_t
 }
 
 // Abstract syntax tree
@@ -53,8 +58,9 @@ pub enum AST {
     Nil, 
     Node{
         kind: NodeKind, // Node kind
-        lhs: Box<AST>, // left side value
-        rhs: Box<AST>, // right side value
+        // left and right side value (used only when the node is calculation)
+        lhs: Box<AST>, 
+        rhs: Box<AST>, 
     }
 }
 
@@ -126,18 +132,24 @@ impl Parser {
     }
 
     fn is_expr(&self) -> bool {
-        if self.is("+") | self.is("-") { return true; }
+        if self.is("+") | self.is("-") | self.is("*") | self.is("&")  { return true; }
         return match self.cur_token() {
             Token{ kind: TokenKind::Ident(_), .. } | Token{ kind: TokenKind::Num(_), .. } => true,
             _ => false,
         };
     }
 
+    fn is_declspec(&self) -> bool {
+        if self.is("int") { return true; }
+        else { return false; }
+    }
+
     // read forward the current token and return it 
     fn consume_any(&mut self) -> Token {
         let ret = self.cur_token();
         self.pos += 1;
-        //d println!("consumed index: {}, Token: {:?}", self.pos, ret);
+        //d 
+        println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -153,7 +165,7 @@ impl Parser {
         }
     }
 
-    // 現在のトークンは指定された文字列のreservedトークンであるに違いないので読み進める
+    // read forward the expected token
     fn expected(&mut self, string: &str) {
         if !self.consume(string) {
             self.error_at("unexpected token");
@@ -197,6 +209,7 @@ impl Parser {
     //      | "if" "(" expr ")" stmt ("else" stmt)?
     //      | "while" "(" expr ")" stmt
     //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+    // Todo declarationを式として評価したい(ex: for(int i;;) )
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
         if self.consume("return") {
@@ -248,6 +261,11 @@ impl Parser {
             }
             return AST::Node{ kind: NodeKind::Block(Box::new(vec)), 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+        }
+        else if self.is_declspec() {
+            let ast = self.declaration();
+            self.expected(";");
+            return ast;;
         }
         // expr ";"
         else {
@@ -422,12 +440,7 @@ impl Parser {
             },
             // not registered
             None => {
-                self.locals.insert(ident_name.clone(), self.offset);
-                let ret = AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: self.offset },
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
-                //d println!("{} offset: {}", var_name, self.offset);
-                self.offset += 8;
-                return ret;
+                panic!("{} is not defined", ident_name.clone());
             },
         };
             
@@ -445,17 +458,61 @@ impl Parser {
     }
 
     // declarator = "*"* ident
-    /*
-    fn declarator(&mut self) -> TypeKind {
-        if self.consume("*") {
-            self.error_at("* is not implemented");
-        } else {
-            self.ident()
+    // Todo 現在はint型にしか対応していない
+    fn declarator(&mut self, tk: TypeKind) -> Type {
+
+        while self.consume("*") {
+            panic!("pointer type is not implemented");
+            //tk = TypeKind::Ptr(Box::new(tk));
         }
+        let ident_name = match self.consume_any() {
+            Token{ kind: TokenKind::Ident(s), .. } => s,
+            _ => panic!("expected a variable name"),
+        };
+        Type{ name: ident_name, kind: tk }
     }
-    */
 
     // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+    fn declaration(&mut self) -> AST {
+        let mut inits: Vec<AST> = Vec::new();
+        let type_kind = self.declspec();
+        
+        while {
+            let declarator = self.declarator(type_kind.clone());
+            let var_name = match declarator.clone() {
+                Type{ name: s, .. } => s,
+            };
+
+            // オフセットの割当て
+            let offset = match self.locals.get(&var_name) {
+                // variable names are already registered
+                Some(&ofs) => {
+                    self.locals.insert(var_name.clone(), ofs);
+                    ofs
+                },
+                // not registered
+                None => {
+                    self.locals.insert(var_name.clone(), self.offset);
+                    self.offset += 8;
+                    self.offset - 8
+                },
+            };
+
+            if self.consume("=") {
+                let init = AST::Node{ kind: NodeKind::Assign,
+                    lhs: Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset },
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }),
+                    rhs: Box::new(self.expr()) };
+                inits.push(AST::Node{ kind: NodeKind::ExprStmt(Box::new(init)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) });
+        
+            }
+
+            self.consume(",") // loop only while this is met
+        } {}
+
+        AST::Node{ kind: NodeKind::Block(Box::new(inits)), 
+            lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+    }        
 
 }
 
