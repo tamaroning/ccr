@@ -77,6 +77,12 @@ impl AST {
             _ => panic!("Nil doesn't have lhs"),
         }
     }
+    pub fn rhs(&self) -> Box<AST> {
+        match self.clone() {
+            AST::Node{ rhs: r, ..} => r,
+            _ => panic!("Nil doesn't have rhs"),
+        }
+    }
 }
 
 fn new_node_num(val: isize) -> AST {
@@ -131,12 +137,9 @@ impl Parser {
         }
     }
 
-    fn is_expr(&self) -> bool {
-        if self.is("+") | self.is("-") | self.is("*") | self.is("&")  { return true; }
-        return match self.cur_token() {
-            Token{ kind: TokenKind::Ident(_), .. } | Token{ kind: TokenKind::Num(_), .. } => true,
-            _ => false,
-        };
+    fn is_funccall(&self) -> bool {
+        if self.tokens[self.pos + 1].string.clone() == "(" { return true }
+        else { return false; }
     }
 
     fn is_declspec(&self) -> bool {
@@ -153,15 +156,14 @@ impl Parser {
         ret
     }
 
-    // 現在のトークンが指定された文字列のreservedトークンに一致すれば、読み進めてtrueを返す
+    // 現在のトークンが指定された文字列のトークンに一致すれば、読み進めてtrueを返す
     // 一致しなければfalseを返す
     fn consume(&mut self, string: &str) -> bool {
-        match self.cur_token() {
-            Token{ string: t ,.. } if t == string  => {
+        if self.is(string) {
                 self.consume_any();
-                true
-            },
-            _ => false,
+                return true;
+        }else {
+            return false;
         }
     }
 
@@ -240,11 +242,10 @@ impl Parser {
                 b: Box::new(cond), c: Box::new(AST::Nil), proc: Box::new(proc) }, 
                 lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }
-        // "for" "(" expr? ";" expr? ";" expr? ")" stmt
+        // "for" "(" expr-stmt? ";" expr? ";" expr? ")" stmt
         else if self.consume("for") {
             self.expected("(");
-            let expr_a = self.expr();
-            self.consume(";");
+            let expr_a = self.expr_stmt();
             let expr_b = self.expr();
             self.consume(";");
             let expr_c = self.expr();
@@ -265,14 +266,19 @@ impl Parser {
         else if self.is_declspec() {
             let ast = self.declaration();
             self.expected(";");
-            return ast;;
+            return ast;
         }
         // expr ";"
         else {
-            let ast = self.expr();
-            self.expected(";");
-            return AST::Node{ kind: NodeKind::ExprStmt(Box::new(ast)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return self.expr_stmt();
         }
+    }
+
+    // expr-stmt = expr ";"
+    fn expr_stmt(&mut self) -> AST {
+        let expr = self.expr();
+        self.expected(";");
+        AST::Node{ kind: NodeKind::ExprStmt(Box::new(expr)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
     }
 
     // expr = assign
@@ -348,7 +354,6 @@ impl Parser {
         ast
     }
 
-
     // mul = unary ("*" unary | "/" unary)*
     fn mul(&mut self) -> AST {
         let mut ast = self.unary();
@@ -386,12 +391,13 @@ impl Parser {
         }
     }
 
-    // primary = num | "(" expr ")"
-    //         | ident (variables and function calls)
+    // primary = num
+    //         | "(" expr ")"
+    //         | funccall
+    //         | ident ; (variables and function calls)
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
-
             let ast = self.expr();
             self.expected(")");
             return ast;
@@ -400,37 +406,21 @@ impl Parser {
         else if self.is_num() {
             return new_node_num(self.consume_number());
         }
-        // ident (variables and function calls)
+        // funccall
+        else if self.is_funccall() {
+            return self.funccall();
+        }
+        // ident
         else {
             return self.ident();
         }
     }
 
-    // ident = ident (variables)
-    //       | ident "(" (expr ",")* ")" (function calls)
+    // ident = ident<Token> ;(variables)
+    //       | funccall
     fn ident(&mut self) -> AST {
-
-        let ident_name = match self.consume_any() {
-            Token{ kind: TokenKind::Ident(s), .. } => s,
-            _ => panic!("unexpected token"),
-        };
+        let ident_name = self.consume_any().string;
         
-        // func_name"(" (expr ",")* ")" (function call)
-        if self.consume("(") {
-            let mut argv: Vec<AST>= Vec::new();
-
-            if self.is_expr() { argv.push(self.expr()); }
-            loop {
-                if !self.consume(",") { break; }
-                if !self.is_expr() { break; }
-                argv.push(self.expr()); 
-            }
-
-            self.expected(")");
-            return AST::Node{ kind: NodeKind::FuncCall{ name: ident_name.clone(), argv: Box::new(argv) }, 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
-        }
-
         // variables
         match self.locals.get(&ident_name) {
             // variable names are already registered
@@ -446,6 +436,23 @@ impl Parser {
             
     }
 
+    // funccall = ident<Token> "(" (expr ",")* ")"
+    fn funccall(&mut self) -> AST {
+        let mut argv: Vec<AST>= Vec::new();
+        let func_name = self.consume_any().string;
+        self.expected("(");
+
+        loop {
+            if self.is(")") { break; }
+            argv.push(self.expr());
+            if !self.consume(",") { break; } 
+        }
+        self.expected(")");
+        
+        return AST::Node{ kind: NodeKind::FuncCall{ name: func_name.clone(), argv: Box::new(argv) }, 
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+    }
+
     // declspec = "int"
     fn declspec(&mut self) -> TypeKind {
         if self.consume("int") {
@@ -457,7 +464,7 @@ impl Parser {
         }
     }
 
-    // declarator = "*"* ident
+    // declarator = "*"* ident<Token>
     // Todo 現在はint型にしか対応していない
     fn declarator(&mut self, tk: TypeKind) -> Type {
 
@@ -465,10 +472,7 @@ impl Parser {
             panic!("pointer type is not implemented");
             //tk = TypeKind::Ptr(Box::new(tk));
         }
-        let ident_name = match self.consume_any() {
-            Token{ kind: TokenKind::Ident(s), .. } => s,
-            _ => panic!("expected a variable name"),
-        };
+        let ident_name = self.consume_any().string;
         Type{ name: ident_name, kind: tk }
     }
 

@@ -16,8 +16,8 @@ fn test_tokenize() {
 pub enum TokenKind {
     Reserved, // keywords or punctuators
     Num(isize), // integer literals(value)
-    Ident(String), // identifiers(name) function name and variable name
-    Keyword(String), // Keywords (return, if, ...)
+    Ident, // identifiers(name) function name and variable name
+    Keyword, // Keywords (return, if, ...)
     Eof, // end of the tokens
 }
 
@@ -61,7 +61,7 @@ pub fn tokenize(input: String) -> Vec<Token> {
         // identifiers 
         if tokenizer.is_al()  {
             let ident = tokenizer.read_ident();
-            tokens.push(Token{ kind: TokenKind::Ident(ident.clone()), pos: tokenizer.pos, string: ident });
+            tokens.push(Token{ kind: TokenKind::Ident, pos: tokenizer.pos, string: ident });
             continue;
         }
 
@@ -193,7 +193,7 @@ impl Tokenizer {
         for i in 0..KEYWORD.len() {
             if self.starts_with(KEYWORD[i]) {
                 let keyword = self.read_nchars(KEYWORD[i].len());
-                return Token{ kind: TokenKind::Keyword(keyword.clone()), pos: self.pos, string: keyword };
+                return Token{ kind: TokenKind::Keyword, pos: self.pos, string: keyword };
             }
         }
         self.error_at(&format!("keyword is expected"));
