@@ -3,6 +3,7 @@ Ccr is a toy C compiler written in Rust language, which I am making in order to 
 This software supports a small subset of C and outputs x64 GNU assembler.  
 Ccr is not so fast, but the source is easy for beginners to read.   
 
+
 # Usage
 ## Compile ccr
 To use ccr, run the following scripts:
@@ -12,6 +13,7 @@ $ git clone https://github.com/tamaroning/ccr
 $ cd ccr
 $ make
 ```
+
 
 ## Run
 Compile text(.c) file:  
@@ -35,6 +37,7 @@ $ echo $?
 ```
 Make sure that the return value is cure in the range of 0~255  
 
+
 ## Test
 You can run test.sh to execute the demo:  
 
@@ -42,12 +45,14 @@ You can run test.sh to execute the demo:
 $ ./test.sh
 ```
 
+
 # Implemented features
 - Numeric literals (only signed integer) (ex: 0, 24, +4, -699)
 - Basic arithmetic operators (+, -, *, /)
 - Dereference and address operators (*, &)
 - Comparison operators (==, !=, </>, <=/>=)
-- Local variables (No need to declare)
+- Local variables (need to be declared)
+- Variable declaration and initialization (ex: int a, b = 0;)
 - Return statement
 - Assignment (ex: a = 4*3;)
 - Control syntax (if-else, for, while)
@@ -56,8 +61,8 @@ $ ./test.sh
 Ccr can compile programs like the following: 
 
 ```c
-sum = 0;
-width = 3;
+int sum = 0;
+int width = 3;
 for ( i = 1; i <= width; i = i + 1) {
     for (j = 1; j <= width; j = j + 1) {
         sum = sum + 1;
@@ -71,12 +76,14 @@ else return 0;
 ## Example 2
 You can use functions which is defined in other object files:  
 ```c
+int i;
 for(i = 0; i < 10; i = i + 1) {
     foo();
 }
 ```
 In this case, foo() is defined in an .o file.
 And you need to link the .o file to the assembly dumped by ccr.  
+
 
 # Todo
 ## Steps  
@@ -100,20 +107,29 @@ And you need to link the .o file to the assembly dumped by ccr.
     - int a = 0, b = 1; は{a=0;b=0}と等価の出力を行うのでスコープの実装後に修正が必要
 - [ ] Step15 関数定義
 
+
 ##  Refactoring and improvement
 - [x] Refactoring: TokenizeとParseの処理を分ける  
 - [x] .cファイルを読み込んで.sファイルを吐き出せるようにする
 - [x] 標準出力に実行中の情報を出力できるようにする
 - [ ] コード生成時に検出されるエラー出力の強化
 
+
 ## Issues
 - [x] for(;;){}を受け付けるようにexpr=Nilを許容する
     - 後ろに;が続く場合のみ許容
+- [ ] for(int i = 0;;)のようにfor内で変数の定義ができるようにする
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
 - [ ] ポインタの演算の修正 (intのポインタpにNを足すと,N要素先のintを指すようにする, つまり+/-演算子のオーバーロード)
 - [ ] 6つ以上の引数の関数呼び出し
 - [ ] EBNFの修正 C言語の正しい文法にする
 
+
+# Internals
+Ccr is designed with reference to chibicc.  
+If you want to the internals, please read [chibicc internals](https://github.com/rui314/chibicc#internals)  
+
+
 # References
-0. Rui Ueyama. 低レイヤを知りたい人のためのCコンパイラ作成入門. (https://www.sigbus.info/compilerbook#)  
-1. rui314. chibicc: A Small C Compiler. (https://github.com/rui314/chibicc)  
+0. Rui Ueyama.[低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook#)  
+1. rui314.[chibicc: A Small C Compiler.](https://github.com/rui314/chibicc)  
