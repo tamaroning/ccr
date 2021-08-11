@@ -1,22 +1,22 @@
-# ccr : C Compiler written in Rust
+# ccr
 Ccr is a toy C compiler written in Rust language, which I am making in order to understand compilers and Rust.  
 This software supports a small subset of C and outputs x64 GNU assembler.  
 Ccr is not so fast, but the source is easy for beginners to read.   
 
 
 # Usage
-## Compile ccr
+## Build ccr
 To use ccr, run the following scripts:
 
 ```sh
 $ git clone https://github.com/tamaroning/ccr
 $ cd ccr
-$ make
+$ cargo build
 ```
 
 
 ## Run
-Compile text(.c) file:  
+After the build, Compile text(.c) file:  
 
 ```sh
 $ ./ccr [file path]
@@ -56,6 +56,7 @@ $ ./test.sh
 - Return statement
 - Assignment (ex: a = 4*3;)
 - Control syntax (if-else, for, while)
+
 
 ## Example 1
 Ccr can compile programs like the following: 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DEBUG="target/debug"
+
 assert() {
     expected="$1"
     input="$2"
@@ -9,7 +11,7 @@ assert() {
     #echo "EOF"
 
     echo "$input" > tmp.src
-    ./ccr tmp.src
+    ./"${DEBUG}"/ccr "${DBEUG}"/tmp.src
     cc -o tmp tmp.s
     ./tmp
     actual="$?"

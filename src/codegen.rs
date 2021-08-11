@@ -17,7 +17,9 @@ struct CodeGenerator {
 
 // ASTの配列からアセンブリ全体を生成する
 pub fn codegen(vec: Vec<AST>, fname: &str) {
-    let mut gen = CodeGenerator{ ast_list: vec, label_cnt: 0, f: BufWriter::new(File::create(fname).unwrap()) };
+    // set the currrent directory
+    let fpath = std::env::current_exe().unwrap().parent().unwrap().join(fname);
+    let mut gen = CodeGenerator{ ast_list: vec, label_cnt: 0, f: BufWriter::new(File::create(&fpath).unwrap()) };
 
     gen.output(".intel_syntax noprefix");
     gen.output(".global main");
@@ -25,12 +27,12 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
     gen.output("    push rbp");
     gen.output("    mov rbp, rsp");
 
-    // prepare stack frame
+    // prepare the stack frame
     gen.output("    sub rsp, 208");
     // vecの各要素(stmt)からアセンブリを生成する。
     for elm in gen.ast_list.clone() {
         gen.gen_stmt(elm);
-        // one value remains on stack top as the result of evaluaing expression
+        // one value remains on the stack top as the result of evaluating expression
         gen.output("    pop rax");
     }
 
