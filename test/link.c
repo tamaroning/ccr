@@ -21,3 +21,7 @@ int mysleep(unsigned int t) {
     usleep(t);
     return 0;
 }
+
+int do_nothing(void){
+    return 0;
+}

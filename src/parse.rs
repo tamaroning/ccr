@@ -487,7 +487,7 @@ impl Parser {
                 Type{ name: s, .. } => s,
             };
 
-            // オフセットの割当て
+            // assign the offset of local variables
             let offset = match self.locals.get(&var_name) {
                 // variable names are already registered
                 Some(&ofs) => {

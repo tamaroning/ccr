@@ -124,6 +124,7 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [ ] ポインタの演算の修正 (intのポインタpにNを足すと,N要素先のintを指すようにする, つまり+/-演算子のオーバーロード)
 - [ ] 6つ以上の引数の関数呼び出し
 - [ ] EBNFの修正 C言語の正しい文法にする
+- [ ] 変数スコープの実装
 
 
 # Internals
@@ -132,5 +133,7 @@ If you want to the internals, please read [chibicc internals](https://github.com
 
 
 # References
-0. Rui Ueyama.[低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook#)  
-1. rui314.[chibicc: A Small C Compiler.](https://github.com/rui314/chibicc)  
+0. [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook#), Rui Ueyama
+1. [chibicc: A Small C Compiler.](https://github.com/rui314/chibicc), rui314
+2. [Compilers: Principles, Techniques, and Tools](https://www.amazon.com/Compilers-Principles-Techniques-Tools-2nd/dp/0321486811), Alfred V.Aho, Monica S.Lam, Ravi Sethi, and Jeffrey D.Ullman
+3. [A Grammar for the C- Programming Language](http://marvin.cs.uidaho.edu/Teaching/CS445/c-Grammar.pdf), Robert Heckendorn
