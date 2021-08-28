@@ -152,7 +152,7 @@ impl Parser {
         let ret = self.cur_token();
         self.pos += 1;
         //d 
-        println!("consumed index: {}, Token: {:?}", self.pos, ret);
+        //println!("consumed index: {}, Token: {:?}", self.pos, ret);
         ret
     }
 
@@ -488,18 +488,13 @@ impl Parser {
             };
 
             // assign the offset of local variables
-            let offset = match self.locals.get(&var_name) {
-                // variable names are already registered
-                Some(&ofs) => {
-                    self.locals.insert(var_name.clone(), ofs);
-                    ofs
-                },
-                // not registered
-                None => {
-                    self.locals.insert(var_name.clone(), self.offset);
-                    self.offset += 8;
-                    self.offset - 8
-                },
+            let offset = if let Some(&ofs) = self.locals.get(&var_name) {
+                self.locals.insert(var_name.clone(), ofs);
+                ofs
+            } else {
+                self.locals.insert(var_name.clone(), self.offset);
+                self.offset += 8;
+                self.offset - 8
             };
 
             if self.consume("=") {

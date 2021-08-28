@@ -35,20 +35,20 @@ fn main() {
     let mut src_string = String::new();
     match src_file.read_to_string(&mut src_string) {
         Err(why) => panic!("couldn't read {}: {}", src_display, why.to_string()),
-        Ok(_) => print!("{} contains:\n{}", src_display, src_string),
+        Ok(_) => (),//print!("{} contains:\n{}", src_display, src_string),
     }
 
     // tokenize the source code
     //println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
     //println!("Done");
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
 
     // generate AST with Token list
     //println!("Parsing tokens...");
     let asts = parse::parse(tokens);
     //println!("Done");
-    println!("{:?}", asts);
+    //println!("{:?}", asts);
     
     // generate the assembly with AST list, then write it to tmp.s
     //println!("Generating assembly...");
