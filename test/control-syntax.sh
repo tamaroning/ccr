@@ -25,5 +25,7 @@ assert() {
 
 assert 55 'int main(void) { int i; int sum = 0; for(i = 0; i <= 10; i = i + 1) { sum = sum + i; } return sum; }'
 assert 200 'int main(void) { int flag = 1; if (flag == 1) { return 200; } else return 100; }'
+assert 200 'int main(void) { if (50 >= 50) { return 200; } else return 100; }'
+assert 100 'int main(void) { if (30 > 30) { return 200; } else return 100; }'
 
 echo OK

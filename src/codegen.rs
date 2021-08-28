@@ -26,7 +26,7 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
 
     // vecの各要素(stmt)からアセンブリを生成する。
     for elm in gen.ast_list.clone() {
-        gen.gen_stmt(elm);
+        gen.gen_no_ret(elm);
     }
 
 }
@@ -40,7 +40,7 @@ fn is_nil(ast: AST) -> bool {
 
 fn is_var(ast: AST) -> bool {
     match ast {
-        AST::Node{ kind: NodeKind::Var{ .. }, .. } => true,
+        AST::Node{ kind: NodeKind::Var{ .. } } => true,
         _ => false,
     }
 }
@@ -51,6 +51,19 @@ impl CodeGenerator {
         writeln!(self.f, "{}",s).unwrap();
     }
 
+    // push address of variables
+    fn gen_addr(&mut self, ast: AST) {
+        match ast {
+            AST::Node{ kind: NodeKind::Var{ offset: ofs, ..} } => {
+                self.output("    mov rax, rbp");
+                self.output(&format!("    sub rax, {}", ofs));
+                self.output("    push rax");
+            },
+            _ => {
+                panic!("non variable nodes doesn't have addresses");
+            },
+        };
+    }
 
     // exprからアセンブリを出力する　Nilは受け付けない
     pub fn gen_expr(&mut self, ast: AST) {
@@ -64,16 +77,15 @@ impl CodeGenerator {
             NodeKind::Assign(l,r) => {
                 // push the address of lhs
                 match *l.clone() {
-                    AST::Node{ kind: NodeKind::Var{ .. }, .. } => self.gen_addr(*l),
-                    AST::Node{ kind: NodeKind::Deref(ast), .. } => self.gen_expr(*ast),
-                    _ => panic!("代入式の左辺が間違っています"),
+                    AST::Node{ kind: NodeKind::Var{ .. } } => self.gen_addr(*l),
+                    AST::Node{ kind: NodeKind::Deref(ast) } => self.gen_expr(*ast),
+                    _ => panic!("incorrect assignment: lhs is wrong expression"),
                 }
                 self.gen_expr(*r); 
                 self.output("    pop rdi"); // rhs 
                 self.output("    pop rax"); // lhs
                 self.output("    mov [rax], rdi");
                 self.output("    push rdi");
-                return;
             },
             // function call
             NodeKind::FuncCall{ name: func_name, argv: args } => {
@@ -91,12 +103,10 @@ impl CodeGenerator {
                 
                 self.output(&format!("    call {}", func_name));
                 self.output("    push rax");
-                return;
             },
             // integers
             NodeKind::Num(i) => {
                 self.output(&format!("    push {}", i));
-                return;
             },
             // variables
             NodeKind::Var{ .. } => {
@@ -104,14 +114,12 @@ impl CodeGenerator {
                 self.output("    pop rax");
                 self.output("    mov rax, [rax]");
                 self.output("    push rax");
-                return;
             }
             NodeKind::Deref(ast) => {
                 self.gen_expr(*ast);
                 self.output("    pop rax");
                 self.output("    mov rax, [rax]");
                 self.output("    push rax");
-                return;
             },
             NodeKind::Addr(ast) => {
                 if is_var(*ast.clone()) {
@@ -119,89 +127,89 @@ impl CodeGenerator {
                 } else {
                     self.gen_expr(*ast);
                 }
-                return;
             },
-            _ => (),
-        };
-
-
-        // rax <- 右辺値と左辺値の演算結果
-        match k {
-            // arithmetic operators
+            // --- arithmetic operators ---
             NodeKind::Plus(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    add rax, rdi");
+                self.output("    push rax");
             },
             NodeKind::Minus(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    sub rax, rdi");
+                self.output("    push rax");
             },
             NodeKind::Mul(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    imul rax, rdi"); 
+                self.output("    push rax");
             },
             NodeKind::Div(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    cqo");
                 self.output("    idiv rdi");
+                self.output("    push rax");
             },
             // comparison operators
             NodeKind::Eq(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax"); 
                 self.output("    cmp rax, rdi");
                 self.output("    sete al");
                 self.output("    movzb rax, al");
+                self.output("    push rax");
             },
             NodeKind::Ne(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    cmp rax, rdi");
                 self.output("    setne al");
                 self.output("    movzb rax, al");
+                self.output("    push rax");
             },
             NodeKind::Lt(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    cmp rax, rdi");
                 self.output("    setl al");
                 self.output("    movzb rax, al");
+                self.output("    push rax");
             },
             NodeKind::Le(l, r) => {
                 self.gen_expr(*l);
                 self.gen_expr(*r);
-                self.output("    pop rdi"); // 右辺値
-                self.output("    pop rax"); // 左辺値
+                self.output("    pop rdi");
+                self.output("    pop rax");
                 self.output("    cmp rax, rdi");
                 self.output("    setle al");
                 self.output("    movzb rax, al");
+                self.output("    push rax");
             },
             _ => (),  
         };
-        self.output("    push rax");
         return;
     }
 
-
-    fn gen_stmt(&mut self, ast: AST) {
+    // スタックトップに結果が積まれないもの (式以外)
+    fn gen_no_ret(&mut self, ast: AST) {
 
         if is_nil(ast.clone()) { panic!("incorrect statement"); }
         match ast.kind() {
@@ -213,9 +221,8 @@ impl CodeGenerator {
                 self.output(&format!("    sub rsp, {}", func_frame_size));
 
                 for elm in *func_stmts.clone() {
-                    self.gen_stmt(elm);
+                    self.gen_no_ret(elm);
                     // one value remains on the stack top as the result of evaluating expression
-                    self.output("    pop rax");
                 }
 
 
@@ -239,7 +246,7 @@ impl CodeGenerator {
                     self.output("    pop rax");
                     self.output("    cmp rax, 0");
                     self.output(&format!("    je {}", label));
-                    self.gen_stmt(*t);
+                    self.gen_no_ret(*t);
                     self.output(&format!("{}:", label));
                     return;
                 }
@@ -254,10 +261,10 @@ impl CodeGenerator {
                     self.output("    pop rax");
                     self.output("    cmp rax, 0");
                     self.output(&format!("    je {}", label_else));
-                    self.gen_stmt(*t);
+                    self.gen_no_ret(*t);
                     self.output(&format!("    jmp {}", label_end));
                     self.output(&format!("{}:", label_else));
-                    self.gen_stmt(*e);
+                    self.gen_no_ret(*e);
                     self.output(&format!("{}:", label_end));
                     return;
                 }
@@ -268,7 +275,7 @@ impl CodeGenerator {
                 let label_end = format!(".Lend{}", self.label_cnt);
                 self.label_cnt += 1;
                 // Nilを許容
-                if !is_nil(*expr_a.clone()) { self.gen_stmt(*expr_a); }
+                if !is_nil(*expr_a.clone()) { self.gen_no_ret(*expr_a); }
                 self.output(&format!("{}:", label_begin));
                 if !is_nil(*expr_b.clone()) {
                     self.gen_expr(*expr_b);
@@ -276,7 +283,7 @@ impl CodeGenerator {
                     self.output("    cmp rax, 0");
                     self.output(&format!("    je {}", label_end));
                 }
-                self.gen_stmt(*p);
+                self.gen_no_ret(*p);
                 if !is_nil(*expr_c.clone()) { self.gen_expr(*expr_c); }
                 self.output(&format!("    jmp {}", label_begin));
                 self.output(&format!("{}:", label_end));
@@ -284,7 +291,7 @@ impl CodeGenerator {
             },
             NodeKind::Block(vec) => {
                 for ast in *vec {
-                    self.gen_stmt(ast);
+                    self.gen_no_ret(ast);
                 }
                 return;
             },
@@ -293,21 +300,6 @@ impl CodeGenerator {
                 self.gen_expr(*expr);
             },
             _ => panic!("incorrect statement"),
-        };
-    }
-
-
-    // push address of variables
-    fn gen_addr(&mut self, ast: AST) {
-        match ast {
-            AST::Node{ kind: NodeKind::Var{ offset: ofs, ..}, .. } => {
-                self.output("    mov rax, rbp");
-                self.output(&format!("    sub rax, {}", ofs));
-                self.output("    push rax");
-            },
-            _ => {
-                panic!("non variable nodes doesn't have addresses");
-            },
         };
     }
 

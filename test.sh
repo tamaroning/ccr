@@ -22,7 +22,9 @@ assert() {
 }
 
 assert 10 '
-return 1+5+4;
+int main(void) {
+    return 1+5+4;
+}
 '
 
 echo OK

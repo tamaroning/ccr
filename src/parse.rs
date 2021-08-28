@@ -56,8 +56,6 @@ pub enum AST {
     Node{
         kind: NodeKind, // Node kind
         // left and right side value (used only when the node is calculation)
-        lhs: Box<AST>, 
-        rhs: Box<AST>, 
     }
 }
 
@@ -68,23 +66,11 @@ impl AST {
             _ => panic!("Nil doesn't have kind"),
         }
     }
-    pub fn lhs(&self) -> Box<AST> {
-        match self.clone() {
-            AST::Node{ lhs: l, ..} => l,
-            _ => panic!("Nil doesn't have lhs"),
-        }
-    }
-    pub fn rhs(&self) -> Box<AST> {
-        match self.clone() {
-            AST::Node{ rhs: r, ..} => r,
-            _ => panic!("Nil doesn't have rhs"),
-        }
-    }
+
 }
 
 fn new_node_num(val: isize) -> AST {
-    AST::Node{ kind: NodeKind::Num(val), 
-        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+    AST::Node{ kind: NodeKind::Num(val)}
 }
 
 #[derive(Debug)]
@@ -234,8 +220,7 @@ impl Parser {
             stmts.push(self.stmt());
         }
 
-        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, frame_size: self.offset, stmts: Box::new(stmts), },
-            lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, frame_size: self.offset, stmts: Box::new(stmts), }}
 
     }
 
@@ -250,7 +235,7 @@ impl Parser {
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
         if self.consume("return") {
-            let ast = AST::Node{ kind: NodeKind::Return(Box::new(self.expr())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil),  };
+            let ast = AST::Node{ kind: NodeKind::Return(Box::new(self.expr()))};
             self.expected(";");
             return ast;
         }
@@ -264,8 +249,7 @@ impl Parser {
             if self.consume("else") {
                 els = self.stmt();
             }
-            return AST::Node{ kind: NodeKind::If{ cond: Box::new(cond), then: Box::new(then), els: Box::new(els)}, 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::If{ cond: Box::new(cond), then: Box::new(then), els: Box::new(els)} };
         }
         // "while" "(" expr ")" stmt
         else if self.consume("while") {
@@ -274,8 +258,8 @@ impl Parser {
             self.expected(")");
             let proc = self.stmt();
             return AST::Node{ kind: NodeKind::For{ a: Box::new(AST::Nil),
-                b: Box::new(cond), c: Box::new(AST::Nil), proc: Box::new(proc) }, 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                b: Box::new(cond), c: Box::new(AST::Nil), proc: Box::new(proc) }
+            };
         }
         // "for" "(" expr-stmt? ";" expr? ";" expr? ")" stmt
         else if self.consume("for") {
@@ -287,7 +271,8 @@ impl Parser {
             self.expected(")");
             let proc = self.stmt();
             return AST::Node{ kind: NodeKind::For{ a: Box::new(expr_a), b: Box::new(expr_b), c: Box::new(expr_c), 
-                proc: Box::new(proc) }, lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                proc: Box::new(proc) }
+            };
         }
         // "{" stmt* "}"
         else if self.consume("{") {
@@ -295,8 +280,7 @@ impl Parser {
             while !self.consume("}") {
                 vec.push(self.stmt());
             }
-            return AST::Node{ kind: NodeKind::Block(Box::new(vec)), 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Block(Box::new(vec)) };
         }
         else if self.is_declspec() {
             let ast = self.declaration();
@@ -313,7 +297,7 @@ impl Parser {
     fn expr_stmt(&mut self) -> AST {
         let expr = self.expr();
         self.expected(";");
-        AST::Node{ kind: NodeKind::ExprStmt(Box::new(expr)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+        AST::Node{ kind: NodeKind::ExprStmt(Box::new(expr)) }
     }
 
     // expr = assign
@@ -328,7 +312,7 @@ impl Parser {
         let mut ast = self.equality();
         while !self.is_eof() {
             if self.consume("=") {
-                ast = AST::Node{ kind: NodeKind::Assign(Box::new(ast), Box::new(self.assign())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Assign(Box::new(ast), Box::new(self.assign()))};
             } else {
                 break;
             }
@@ -341,9 +325,9 @@ impl Parser {
         let mut ast = self.relational();
         while !self.is_eof() {
             if self.consume("==") {
-                ast = AST::Node{ kind: NodeKind::Eq(Box::new(ast), Box::new(self.relational())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Eq(Box::new(ast), Box::new(self.relational()))};
             } else if self.consume("!=") {
-                ast = AST::Node{ kind: NodeKind::Ne(Box::new(ast), Box::new(self.relational())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Ne(Box::new(ast), Box::new(self.relational()))};
             } else {
                 break;
             }
@@ -357,13 +341,13 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("<=") {
-                ast = AST::Node{ kind: NodeKind::Le(Box::new(ast), Box::new(self.add())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Le(Box::new(ast), Box::new(self.add()))};
             } else if self.consume("<") {
-                ast = AST::Node{ kind: NodeKind::Lt(Box::new(ast), Box::new(self.add())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Lt(Box::new(ast), Box::new(self.add()))};
             } else if self.consume(">=") {
-                ast = AST::Node{ kind: NodeKind::Le(Box::new(self.add()), Box::new(ast),), rhs: Box::new(AST::Nil), lhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Le(Box::new(self.add()), Box::new(ast))};
             } else if self.consume(">") {
-                ast = AST::Node{ kind: NodeKind::Lt(Box::new(self.add()), Box::new(ast),), rhs: Box::new(AST::Nil), lhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Lt(Box::new(self.add()), Box::new(ast))};
             } else {
                 break;
             }
@@ -377,11 +361,9 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("+") {
-                ast = AST::Node{ kind: NodeKind::Plus(Box::new(ast), Box::new(self.mul())), 
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Plus(Box::new(ast), Box::new(self.mul())) };
             } else if self.consume("-") {
-                ast = AST::Node{ kind: NodeKind::Minus(Box::new(ast), Box::new(self.mul())), 
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Minus(Box::new(ast), Box::new(self.mul())) };
             } else {
                 break;
             }
@@ -395,11 +377,9 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("*") {
-                ast = AST::Node{ kind: NodeKind::Mul(Box::new(ast), Box::new(self.unary())), 
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Mul(Box::new(ast), Box::new(self.unary())) };
             } else if self.consume("/") {
-                ast = AST::Node{ kind: NodeKind::Div(Box::new(ast), Box::new(self.unary())), 
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                ast = AST::Node{ kind: NodeKind::Div(Box::new(ast), Box::new(self.unary())) };
             } else {
                 break;
             }
@@ -413,14 +393,11 @@ impl Parser {
         if self.consume("+") {
             return self.unary();
         } else if self.consume("-") {
-            return AST::Node{ kind: NodeKind::Minus(Box::new(new_node_num(0)), Box::new(self.unary())),
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Minus(Box::new(new_node_num(0)), Box::new(self.unary())) };
         } else if self.consume("*") {
-            return AST::Node{ kind: NodeKind::Deref(Box::new(self.unary())),
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Deref(Box::new(self.unary())) };
         }  else if self.consume("&") {
-            return AST::Node{ kind: NodeKind::Addr(Box::new(self.unary())),
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Addr(Box::new(self.unary())) };
         } else {
             return self.primary();
         }
@@ -459,8 +436,7 @@ impl Parser {
         match &self.locals.get(&ident_name) {
             // variable names are already registered
             Some(t) => {
-                return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: t.0, ty: t.1.clone() },
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+                return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: t.0, ty: t.1.clone() } };
             },
             // not registered
             None => {
@@ -483,8 +459,7 @@ impl Parser {
         }
         self.expected(")");
         
-        return AST::Node{ kind: NodeKind::FuncCall{ name: func_name.clone(), argv: Box::new(argv) }, 
-                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
+        return AST::Node{ kind: NodeKind::FuncCall{ name: func_name.clone(), argv: Box::new(argv) } };
     }
 
     // declspec = "int"
@@ -543,21 +518,17 @@ impl Parser {
 
             if self.consume("=") {
                 let init = AST::Node{ kind: NodeKind::Assign(
-                    Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset, ty: ty.clone()},
-                        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }),
+                    Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset, ty: ty.clone()} }),
                     Box::new(self.expr())
-                        ),
-                    lhs: Box::new(AST::Nil),
-                    rhs: Box::new(AST::Nil) };
-                inits.push(AST::Node{ kind: NodeKind::ExprStmt(Box::new(init)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) });
+                )};
+                inits.push(AST::Node{ kind: NodeKind::ExprStmt(Box::new(init)) });
         
             }
 
             self.consume(",") // loop only while this is met
         } {}
 
-        AST::Node{ kind: NodeKind::Block(Box::new(inits)), 
-            lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+        AST::Node{ kind: NodeKind::Block(Box::new(inits)) }
     }        
 
 }
