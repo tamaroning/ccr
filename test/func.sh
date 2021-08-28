@@ -26,5 +26,13 @@ assert() {
 assert 30 'int main(void) { return 30; }'
 assert 3 'int ret1(void) { return 1; } int ret2(void) { return 2; } int main(void) { return ret1() + ret2(); } '
 assert 0 'void func(void) { return; } int main(void) { func(); return 0; }'
-
+assert 13 'int fib(int n) {
+    if (n == 1) return 1;
+    if (n == 2) return 1;
+    return fib(n-1) + fib(n-2);
+}
+int main(void) {
+    return fib(7);
+}
+'
 echo OK

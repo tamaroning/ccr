@@ -21,13 +21,17 @@ assert() {
     fi
 }
 
-assert 10 '
+assert 89 '
 int main(void) {
-    return ret1() * 10;
+    return fib(11);
 }
-int ret1(void) {
-    return 1;
+
+int fib(int n) {
+    if (n == 1) return 1;
+    if (n == 2) return 1;
+    return fib(n-1) + fib(n-2);
 }
+
 '
 
 echo OK
