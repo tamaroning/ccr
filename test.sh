@@ -7,7 +7,7 @@ assert() {
     input="$2"
 
     echo "$input" > "${DEBUG}"tmp.src
-    "${DEBUG}"ccr "${DEBUG}tmp.src"
+    "${DEBUG}"ccr -d "${DEBUG}tmp.src"
     cc -o ${DEBUG}tmp "${DEBUG}"tmp.s
     ${DEBUG}tmp
     actual="$?"

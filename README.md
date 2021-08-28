@@ -62,24 +62,29 @@ $ ./test/test-all.sh
 Ccr can compile programs like the following: 
 
 ```c
-int sum = 0;
-int width = 3;
-for ( i = 1; i <= width; i = i + 1) {
-    for (j = 1; j <= width; j = j + 1) {
-        sum = sum + 1;
+int main(void) {
+    int sum = 0;
+    int width = 3;
+    for ( i = 1; i <= width; i = i + 1) {
+        for (j = 1; j <= width; j = j + 1) {
+            sum = sum + 1;
+        }
     }
-}
 
-if (sum == 9) return 1;
-else return 0;
+    if (sum == 9) return 1;
+    else return 0;
+}
 ```
 
 ## Example 2
 You can use functions which is defined in other object files:  
 ```c
-int i;
-for(i = 0; i < 10; i = i + 1) {
-    foo();
+int main(void) {
+    int i;
+    for(i = 0; i < 10; i = i + 1) {
+        foo();
+    }
+    return 0;
 }
 ```
 In this case, foo() is defined in an .o file.

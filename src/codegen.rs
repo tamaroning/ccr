@@ -23,17 +23,10 @@ pub fn codegen(vec: Vec<AST>, fname: &str) {
 
     gen.output(".intel_syntax noprefix");
     gen.output(".global main");
-    gen.output("main:");
-    gen.output("    push rbp");
-    gen.output("    mov rbp, rsp");
 
-    // prepare the stack frame
-    gen.output("    sub rsp, 208");
     // vecの各要素(stmt)からアセンブリを生成する。
     for elm in gen.ast_list.clone() {
         gen.gen_stmt(elm);
-        // one value remains on the stack top as the result of evaluating expression
-        gen.output("    pop rax");
     }
 
 }
@@ -57,6 +50,7 @@ impl CodeGenerator {
     fn output(&mut self, s: &str) {
         writeln!(self.f, "{}",s).unwrap();
     }
+
 
     // exprからアセンブリを出力する　Nilは受け付けない
     pub fn gen_expr(&mut self, ast: AST) {
@@ -178,6 +172,22 @@ impl CodeGenerator {
 
         if is_nil(ast.clone()) { panic!("incorrect statement"); }
         match ast.kind() {
+            NodeKind::FuncDecl{ name: func_name, frame_size: func_frame_size, stmts: func_stmts, } => {
+                self.output(&format!("{}:", func_name));
+                self.output("    push rbp");
+                self.output("    mov rbp, rsp");
+                // prepare the stack frame
+                self.output(&format!("    sub rsp, {}", func_frame_size));
+
+                for elm in *func_stmts.clone() {
+                    self.gen_stmt(elm);
+                    // one value remains on the stack top as the result of evaluating expression
+                    self.output("    pop rax");
+                }
+
+
+                return;
+            },
             NodeKind::Return => {
                 self.gen_expr(*ast.lhs()); // returnノードのrhsはNilを指す
                 self.output("    pop rax");

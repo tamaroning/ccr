@@ -14,16 +14,29 @@ mod parse;
 mod codegen;
 
 fn main() {
+    let mut is_quiet = false;
+    let mut is_debug = false;
+    
     let argv: Vec<String> = env::args().collect();
-    let argc: usize = argv.len();
-
-    if argc != 2 {
-        panic!("invalid argument count.");
-    }
 
     // prepare the source file
-    let src_path = Path::new(&argv[1]);
+    let mut src_path = Path::new("");
     let src_display = src_path.display();
+
+    // process the arguments
+    for arg in &argv {
+        if arg == "-q" {
+            is_quiet = true;
+        } else if arg == "-d" {
+            is_debug = true;
+        } else {
+            src_path = Path::new(arg);
+        }
+    }
+
+    if src_path.to_str() == Some("") {
+        panic!("No input file");
+    } 
 
     // open path as read-only
     let mut src_file = match File::open(&src_path) {
@@ -39,21 +52,21 @@ fn main() {
     }
 
     // tokenize the source code
-    //println!("Tokenizing input...");
+    if !is_quiet && !is_debug { println!("Tokenizing input..."); }
     let tokens = tokenize::tokenize(src_string);
-    //println!("Done");
-    //println!("{:?}", tokens);
+    if !is_quiet && !is_debug { println!("Done"); }
+    if is_debug { println!("{:?}", tokens); }
 
     // generate AST with Token list
-    //println!("Parsing tokens...");
+    if !is_quiet && !is_debug { println!("Parsing tokens..."); }
     let asts = parse::parse(tokens);
-    //println!("Done");
-    //println!("{:?}", asts);
+    if !is_quiet && !is_debug { println!("Done"); }
+    if is_debug { println!("{:?}", asts); }
     
     // generate the assembly with AST list, then write it to tmp.s
-    //println!("Generating assembly...");
+    if !is_quiet && !is_debug { println!("Generating assembly..."); }
     codegen::codegen(asts, "tmp.s");
-    //println!("Done");
+    if !is_quiet && !is_debug { println!("Done"); }
 }
 
 #[test]
