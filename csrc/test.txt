@@ -1,4 +1,8 @@
-int i;
-i = 100;
-dump(i);
+int i=-200;
+int *p = &i;
+
+dump_int64(i);
+dump_addr(&i);
+dump_addr(&p);
+
 return 0;

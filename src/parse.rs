@@ -18,16 +18,11 @@ fn test_parse() {
 }
 
 #[derive(Debug, Clone)]
-pub enum TypeKind {
-    Int, // Todo now is the same as int64_t
-    Ptr(Box<TypeKind>),
+pub enum Type {
+    Int,
+    Ptr(Box<Type>),
 }
 
-#[derive(Debug, Clone)]
-pub struct Type {
-    kind: TypeKind,
-    name: String,
-}
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
@@ -37,7 +32,7 @@ pub enum NodeKind {
     Plus, Minus, Mul, Div, // +,-,*,/
     Eq, Ne, Le, Lt, // ==,!=,<=,<
     Deref, Addr, // *, &
-    Var{ name: String, offset: usize }, // local variables (offset from rbp)
+    Var{ name: String, offset: usize, ty: Type }, // local variables (offset from rbp)
     FuncCall{ name: String, argv: Box<Vec<AST>> }, // function call
 
     //DeclareVar{ dec: Box<Vec<(Type, AST)>> }, // declaretion of variables (Type of var, initial assignment)
@@ -95,7 +90,7 @@ struct Parser {
     tokens: Vec<Token>, // Token list
     pos: usize, // current index of tokens
     offset: usize, // current stack frame size (increase by 8 when a new local var is defined)
-    locals: HashMap<String, usize>, // local variables list <name, offset>
+    locals: HashMap<String, (usize, Type)>, // local variables list <name, offset from RBP>
 }
 
 pub fn parse(tokens: Vec<Token>) -> Vec<AST> {
@@ -417,15 +412,14 @@ impl Parser {
     }
 
     // ident = ident<Token> ;(variables)
-    //       | funccall
     fn ident(&mut self) -> AST {
         let ident_name = self.consume_any().string;
         
         // variables
-        match self.locals.get(&ident_name) {
+        match &self.locals.get(&ident_name) {
             // variable names are already registered
-            Some(ofs) => {
-                return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: *ofs },
+            Some(t) => {
+                return AST::Node{ kind: NodeKind::Var{ name: ident_name.clone(), offset: t.0, ty: t.1.clone() },
                     lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             },
             // not registered
@@ -454,53 +448,62 @@ impl Parser {
     }
 
     // declspec = "int"
-    fn declspec(&mut self) -> TypeKind {
+    fn declspec(&mut self) -> Type {
         if self.consume("int") {
-            return TypeKind::Int;
+            return Type::Int;
         }
         else {
             self.error_at("unexpected type");
-            TypeKind::Int
+            Type::Int
         }
     }
 
     // declarator = "*"* ident<Token>
     // Todo 現在はint型にしか対応していない
-    fn declarator(&mut self, tk: TypeKind) -> Type {
+    fn declarator(&mut self, mut ty: Type) -> (String, Type) {
 
         while self.consume("*") {
-            panic!("pointer type is not implemented");
-            //tk = TypeKind::Ptr(Box::new(tk));
+            //panic!("pointer type is not implemented");
+            ty = Type::Ptr(Box::new(ty));
         }
         let ident_name = self.consume_any().string;
-        Type{ name: ident_name, kind: tk }
+        (ident_name, ty)
     }
 
     // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
     fn declaration(&mut self) -> AST {
         let mut inits: Vec<AST> = Vec::new();
-        let type_kind = self.declspec();
+        let declspec = self.declspec();
         
         while {
-            let declarator = self.declarator(type_kind.clone());
-            let var_name = match declarator.clone() {
-                Type{ name: s, .. } => s,
-            };
+            // 変数名と型を取得
+            // ここで型を取得するのは int a, *b;のような宣言がありえるため
+            let (var_name, ty) = self.declarator(declspec.clone());
 
-            // assign the offset of local variables
-            let offset = if let Some(&ofs) = self.locals.get(&var_name) {
-                self.locals.insert(var_name.clone(), ofs);
-                ofs
-            } else {
-                self.locals.insert(var_name.clone(), self.offset);
-                // set a variable size here
-                self.offset += 4;
-                self.offset - 4
+            let mut offset; 
+            offset = match self.locals.get(&var_name) {
+                // variable names are already registered
+                Some((ofs, _)) => {
+                    //self.locals.insert(var_name.clone(), (offs, ));
+                    *ofs
+                },
+                // not registered
+                None => {
+                    self.locals.insert(var_name.clone(), (self.offset, ty.clone()));
+                    let var_size = match ty {
+                        Type::Int => 8,
+                        Type::Ptr(_) => 8,
+                    };
+                    //println!("{:?} {:?} {:?}", var_name, ty, var_size);
+                    offset = self.offset;
+                    self.offset += var_size;
+                    offset
+                },
             };
 
             if self.consume("=") {
                 let init = AST::Node{ kind: NodeKind::Assign,
-                    lhs: Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset },
+                    lhs: Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset, ty: ty.clone()},
                     lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }),
                     rhs: Box::new(self.expr()) };
                 inits.push(AST::Node{ kind: NodeKind::ExprStmt(Box::new(init)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) });

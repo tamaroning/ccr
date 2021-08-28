@@ -58,8 +58,5 @@ fn main() {
 
 #[test]
 fn test_func () {
-    println!("=== test starts ===");
 
-    
-    println!("=== test finished ===");
 }

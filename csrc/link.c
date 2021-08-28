@@ -3,21 +3,35 @@
 #include <stdint.h>
 #include <unistd.h>
 
-int dump(uint32_t a) {
+int dump_uint32(uint32_t a) {
+    printf("%u\n", a);
+    return 0;
+}
+
+int dump_int32(int32_t a) {
     printf("%d\n", a);
     return 0;
 }
 
-int dump2(uint32_t a, uint32_t b) {
-    printf("%d, %d\n", a, b);
+int dump_uint64(uint64_t a) {
+    printf("%u\n", a);
     return 0;
+}
+
+int dump_int64(int64_t a) {
+    printf("%d\n", a);
+    return 0;
+}
+
+int dump_addr(uint64_t a) {
+    printf("%016x\n", a);
 }
 
 int square(uint32_t a) {
     return a*a;
 }
 
-int mysleep(unsigned int t) {
+int mysleep(uint32_t t) {
     usleep(t);
     return 0;
 }
