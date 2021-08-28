@@ -74,9 +74,9 @@ impl CodeGenerator {
                     AST::Node{ kind: NodeKind::Deref, lhs: deref_l, .. } => self.gen_expr(*deref_l),
                     _ => panic!("代入式の左辺が間違っています"),
                 }
-                self.gen_expr(*r);
-                self.output("    pop rdi");
-                self.output("    pop rax");
+                self.gen_expr(*r); 
+                self.output("    pop rdi"); // rhs 
+                self.output("    pop rax"); // lhs
                 self.output("    mov [rax], rdi");
                 self.output("    push rdi");
                 return;
@@ -129,7 +129,8 @@ impl CodeGenerator {
             },
             _ => (),
         };
-                
+        
+        // 右辺値と左辺値がある式
         self.gen_expr(*l);
         self.gen_expr(*r);
         self.output("    pop rdi"); // 右辺値

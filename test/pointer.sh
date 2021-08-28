@@ -27,5 +27,6 @@ assert 10 '{int a = 10;return *(&a);}'
 assert 2 '{int a = 1;int b = 2;return *(&a-8);}'
 assert 6 '{int a = 5;int b;*(&a-8)=6;return *&b;}'
 assert 200 '{int a = 100; int *b = &a; *b = 200; return a;}'
+assert 200 '{int a = 200, *p, **pp; p = &a; pp = &p; return **pp; }'
 
 echo OK
