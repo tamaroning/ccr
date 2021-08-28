@@ -3,7 +3,7 @@
 #[allow(unused_imports)]
 use std::fmt;
 
-const KEYWORD: [&'static str; 6] = ["return", "if", "else", "for", "while", "int"];
+const KEYWORD: [&'static str; 7] = ["return", "if", "else", "for", "while", "int", "void"];
 
 #[test]
 fn test_tokenize() {

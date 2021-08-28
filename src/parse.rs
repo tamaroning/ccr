@@ -26,6 +26,8 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
+    FuncDecl{ name: String, frame_size: usize, stmts: Box<Vec<AST>> },
+
     // --- Expression --- 
     Num(isize), // integers
     Assign, // = (assignment)
@@ -34,8 +36,7 @@ pub enum NodeKind {
     Deref, Addr, // *, &
     Var{ name: String, offset: usize, ty: Type }, // local variables (offset from rbp)
     FuncCall{ name: String, argv: Box<Vec<AST>> }, // function call
-
-    //DeclareVar{ dec: Box<Vec<(Type, AST)>> }, // declaretion of variables (Type of var, initial assignment)
+    
 
     // --- Statement ---
     ExprStmt(Box<AST>),
@@ -89,6 +90,8 @@ fn new_node_num(val: isize) -> AST {
 struct Parser {
     tokens: Vec<Token>, // Token list
     pos: usize, // current index of tokens
+    
+    // 以下は関数定義毎にリセット
     offset: usize, // current stack frame size (increase by 8 when a new local var is defined)
     locals: HashMap<String, (usize, Type)>, // local variables list <name, offset from RBP>
 }
@@ -189,7 +192,7 @@ impl Parser {
     // ----- Description of grammar by EBNF -----
 
     // program = stmt*
-    
+    /* 
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
         loop {
@@ -198,9 +201,10 @@ impl Parser {
             ret.push(self.stmt());
         }
         ret
-    }
+    }*/
     
-    /*fn program(&mut self) -> Vec<AST> {
+    // program = func_decl*
+    fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
         loop {
             //println!("statement[{}]", i);
@@ -209,9 +213,31 @@ impl Parser {
         }
         ret
     }
+
+    //func_decl = ident () { stmt* }
     fn func_decl(&mut self) -> AST {
-        
-    }*/
+        // reset the stack frame size and the local variables
+        self.offset = 0;
+        self.locals = HashMap::new();
+
+        let mut stmts = Vec::new();
+
+        let func_name = self.consume_any().string;
+
+        self.consume("int");
+
+        self.consume("(");
+        self.consume("void");
+        self.consume(")");
+        self.consume("{");
+        while !self.consume("}") {
+            stmts.push(self.stmt());
+        }
+
+        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, frame_size: self.offset, stmts: Box::new(stmts), },
+            lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }
+
+    }
 
     // stmt = expr ";" 
     //      | declararion ";"
