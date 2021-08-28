@@ -42,13 +42,13 @@ fn main() {
     //println!("Tokenizing input...");
     let tokens = tokenize::tokenize(src_string);
     //println!("Done");
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
 
     // generate AST with Token list
     //println!("Parsing tokens...");
     let asts = parse::parse(tokens);
     //println!("Done");
-    println!("{:?}", asts);
+    //println!("{:?}", asts);
     
     // generate the assembly with AST list, then write it to tmp.s
     //println!("Generating assembly...");

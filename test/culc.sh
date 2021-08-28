@@ -23,9 +23,9 @@ assert() {
     fi
 }
 
-assert 10 '{return 1+5+4;}'
-assert 7 '{return 10 - 5 + 2;}'
-assert 100 '{return (1000*31 -1000)/300;}'
-assert  10 '{return ((40-38)*2 + 50)/6 + 1;}'
+assert 10 'int main(void) {return 1+5+4;}'
+assert 7 'int main(void) {return 10 - 5 + 2;}'
+assert 100 'int main(void) {return (1000*31 -1000)/300;}'
+assert  10 'int main(void) {return ((40-38)*2 + 50)/6 + 1;}'
 
 echo OK

@@ -222,10 +222,9 @@ impl Parser {
 
         let mut stmts = Vec::new();
 
-        let func_name = self.consume_any().string;
-
+        
         self.consume("int");
-
+        let func_name = self.consume_any().string;
         self.consume("(");
         self.consume("void");
         self.consume(")");

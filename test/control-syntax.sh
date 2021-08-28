@@ -23,7 +23,7 @@ assert() {
     fi
 }
 
-assert 55 '{ int i; int sum = 0; for(i = 0; i <= 10; i = i + 1) { sum = sum + i; } return sum; }'
-assert 200 '{ int flag = 1; if (flag == 1) { return 200; } else return 100; }'
+assert 55 'int main(void) { int i; int sum = 0; for(i = 0; i <= 10; i = i + 1) { sum = sum + i; } return sum; }'
+assert 200 'int main(void) { int flag = 1; if (flag == 1) { return 200; } else return 100; }'
 
 echo OK
