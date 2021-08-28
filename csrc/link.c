@@ -3,17 +3,17 @@
 #include <stdint.h>
 #include <unistd.h>
 
-int dump(uint64_t a) {
+int dump(uint32_t a) {
     printf("%d\n", a);
     return 0;
 }
 
-int dump2(uint64_t a, uint64_t b) {
+int dump2(uint32_t a, uint32_t b) {
     printf("%d, %d\n", a, b);
     return 0;
 }
 
-int square(uint64_t a) {
+int square(uint32_t a) {
     return a*a;
 }
 

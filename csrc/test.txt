@@ -1,0 +1,4 @@
+int i;
+i = 100;
+dump(i);
+return 0;
