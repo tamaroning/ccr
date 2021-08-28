@@ -189,6 +189,7 @@ impl Parser {
     // ----- Description of grammar by EBNF -----
 
     // program = stmt*
+    
     fn program(&mut self) -> Vec<AST> {
         let mut ret = Vec::new();
         loop {
@@ -198,6 +199,19 @@ impl Parser {
         }
         ret
     }
+    
+    /*fn program(&mut self) -> Vec<AST> {
+        let mut ret = Vec::new();
+        loop {
+            //println!("statement[{}]", i);
+            if self.is_eof() { break; }
+            ret.push(self.func_decl());
+        }
+        ret
+    }
+    fn func_decl(&mut self) -> AST {
+        
+    }*/
 
     // stmt = expr ";" 
     //      | declararion ";"
@@ -389,7 +403,7 @@ impl Parser {
     // primary = num
     //         | "(" expr ")"
     //         | funccall
-    //         | ident ; (variables and function calls)
+    //         | local_var 
     fn primary(&mut self) -> AST {
         // "(" expr ")"
         if self.consume("(") {
@@ -407,12 +421,12 @@ impl Parser {
         }
         // ident
         else {
-            return self.ident();
+            return self.local_var();
         }
     }
 
-    // ident = ident<Token> ;(variables)
-    fn ident(&mut self) -> AST {
+    // local_var 最小単位
+    fn local_var(&mut self) -> AST {
         let ident_name = self.consume_any().string;
         
         // variables
