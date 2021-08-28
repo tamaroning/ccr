@@ -493,8 +493,9 @@ impl Parser {
                 ofs
             } else {
                 self.locals.insert(var_name.clone(), self.offset);
-                self.offset += 8;
-                self.offset - 8
+                // set a variable size here
+                self.offset += 4;
+                self.offset - 4
             };
 
             if self.consume("=") {
