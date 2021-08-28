@@ -113,6 +113,7 @@ And you need to link the .o file to the assembly dumped by ccr.
 
 
 ## Issues
+- [] ASAP NodeKindの修正 lhs,rhsを削除する
 - [x] for(;;){}を受け付けるようにexpr=Nilを許容する
     - 後ろに;が続く場合のみ許容
 - [ ] for(int i = 0;;)のようにfor内で変数の定義ができるようにする

@@ -62,16 +62,16 @@ impl CodeGenerator {
     pub fn gen_expr(&mut self, ast: AST) {
         if is_nil(ast.clone()) { panic!("Nil is not expr"); }
 
-        let (k, l, r) = (ast.kind().clone(), ast.lhs().clone(), ast.rhs().clone());
+        let k = ast.kind().clone();
 
         match k {
             // assignment
             // lhs is variables or deref*, rhs is expression
-            NodeKind::Assign => {
+            NodeKind::Assign(l,r) => {
                 // push the address of lhs
                 match *l.clone() {
                     AST::Node{ kind: NodeKind::Var{ .. }, .. } => self.gen_addr(*l),
-                    AST::Node{ kind: NodeKind::Deref, lhs: deref_l, .. } => self.gen_expr(*deref_l),
+                    AST::Node{ kind: NodeKind::Deref(ast), .. } => self.gen_expr(*ast),
                     _ => panic!("代入式の左辺が間違っています"),
                 }
                 self.gen_expr(*r); 
@@ -112,57 +112,89 @@ impl CodeGenerator {
                 self.output("    push rax");
                 return;
             }
-            NodeKind::Deref => {
-                self.gen_expr(*l);
+            NodeKind::Deref(ast) => {
+                self.gen_expr(*ast);
                 self.output("    pop rax");
                 self.output("    mov rax, [rax]");
                 self.output("    push rax");
                 return;
             },
-            NodeKind::Addr => {
-                if is_var(*l.clone()) {
-                    self.gen_addr(*l);
+            NodeKind::Addr(ast) => {
+                if is_var(*ast.clone()) {
+                    self.gen_addr(*ast);
                 } else {
-                    self.gen_expr(*l);
+                    self.gen_expr(*ast);
                 }
                 return;
             },
             _ => (),
         };
-        
-        // 右辺値と左辺値がある式
-        self.gen_expr(*l);
-        self.gen_expr(*r);
-        self.output("    pop rdi"); // 右辺値
-        self.output("    pop rax"); // 左辺値
 
         // rax <- 右辺値と左辺値の演算結果
         match k {
             // arithmetic operators
-            NodeKind::Plus => { self.output("    add rax, rdi"); },
-            NodeKind::Minus => { self.output("    sub rax, rdi"); },
-            NodeKind::Mul => { self.output("    imul rax, rdi"); },
-            NodeKind::Div => {
+            NodeKind::Plus(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
+                self.output("    add rax, rdi");
+            },
+            NodeKind::Minus(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
+                self.output("    sub rax, rdi");
+            },
+            NodeKind::Mul(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
+                self.output("    imul rax, rdi");
+            },
+            NodeKind::Div(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
                 self.output("    cqo");
                 self.output("    idiv rdi");
             },
             // comparison operators
-            NodeKind::Eq => {
+            NodeKind::Eq(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
                 self.output("    cmp rax, rdi");
                 self.output("    sete al");
                 self.output("    movzb rax, al");
             },
-            NodeKind::Ne => {
+            NodeKind::Ne(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
                 self.output("    cmp rax, rdi");
                 self.output("    setne al");
                 self.output("    movzb rax, al");
             },
-            NodeKind::Lt => {
+            NodeKind::Lt(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
                 self.output("    cmp rax, rdi");
                 self.output("    setl al");
                 self.output("    movzb rax, al");
             },
-            NodeKind::Le => {
+            NodeKind::Le(l, r) => {
+                self.gen_expr(*l);
+                self.gen_expr(*r);
+                self.output("    pop rdi"); // 右辺値
+                self.output("    pop rax"); // 左辺値
                 self.output("    cmp rax, rdi");
                 self.output("    setle al");
                 self.output("    movzb rax, al");
@@ -178,8 +210,8 @@ impl CodeGenerator {
 
         if is_nil(ast.clone()) { panic!("incorrect statement"); }
         match ast.kind() {
-            NodeKind::Return => {
-                self.gen_expr(*ast.lhs()); // returnノードのrhsはNilを指す
+            NodeKind::Return(expr) => {
+                self.gen_expr(*expr); // returnノードのrhsはNilを指す
                 self.output("    pop rax");
                 self.output("    mov rsp, rbp");
                 self.output("    pop rbp");
