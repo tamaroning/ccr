@@ -30,10 +30,11 @@ pub enum NodeKind {
 
     // --- Expression --- 
     Num(isize), // integers
-    Assign, // = (assignment)
-    Plus, Minus, Mul, Div, // +,-,*,/
-    Eq, Ne, Le, Lt, // ==,!=,<=,<
-    Deref, Addr, // *, &
+    Assign(Box<AST>, Box<AST>), // = (assignment)
+    Plus(Box<AST>, Box<AST>), Minus(Box<AST>, Box<AST>),
+    Mul(Box<AST>, Box<AST>), Div(Box<AST>, Box<AST>), // +,-,*,/
+    Eq(Box<AST>, Box<AST>), Ne(Box<AST>, Box<AST>), Le(Box<AST>, Box<AST>), Lt(Box<AST>, Box<AST>), // ==,!=,<=,<
+    Deref(Box<AST>), Addr(Box<AST>), // *, &
     Var{ name: String, offset: usize, ty: Type }, // local variables (offset from rbp)
     FuncCall{ name: String, argv: Box<Vec<AST>> }, // function call
     
@@ -41,7 +42,7 @@ pub enum NodeKind {
     // --- Statement ---
     ExprStmt(Box<AST>),
     Block(Box<Vec<AST>>), // {} block
-    Return, // return statement, lhs used as return values
+    Return(Box<AST>), // return statement
     If{ cond: Box<AST>, then: Box<AST>, els: Box<AST> }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
     While{ cond: Box<AST>, proc: Box<AST> }, //while([cond(expr)]) [proc(stmt)]
     For{ a: Box<AST>, b: Box<AST>, c: Box<AST>, proc: Box<AST> }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
@@ -249,7 +250,7 @@ impl Parser {
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
         if self.consume("return") {
-            let ast = AST::Node{ kind: NodeKind::Return, lhs: Box::new(self.expr()), rhs: Box::new(AST::Nil),  };
+            let ast = AST::Node{ kind: NodeKind::Return(Box::new(self.expr())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil),  };
             self.expected(";");
             return ast;
         }
@@ -327,7 +328,7 @@ impl Parser {
         let mut ast = self.equality();
         while !self.is_eof() {
             if self.consume("=") {
-                ast = AST::Node{ kind: NodeKind::Assign, lhs: Box::new(ast), rhs: Box::new(self.assign()) };
+                ast = AST::Node{ kind: NodeKind::Assign(Box::new(ast), Box::new(self.assign())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else {
                 break;
             }
@@ -340,9 +341,9 @@ impl Parser {
         let mut ast = self.relational();
         while !self.is_eof() {
             if self.consume("==") {
-                ast = AST::Node{ kind: NodeKind::Eq, lhs: Box::new(ast), rhs: Box::new(self.relational()) };
+                ast = AST::Node{ kind: NodeKind::Eq(Box::new(ast), Box::new(self.relational())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else if self.consume("!=") {
-                ast = AST::Node{ kind: NodeKind::Ne, lhs: Box::new(ast), rhs: Box::new(self.relational()) };
+                ast = AST::Node{ kind: NodeKind::Ne(Box::new(ast), Box::new(self.relational())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else {
                 break;
             }
@@ -356,13 +357,13 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("<=") {
-                ast = AST::Node{ kind: NodeKind::Le, lhs: Box::new(ast), rhs: Box::new(self.add()) };
+                ast = AST::Node{ kind: NodeKind::Le(Box::new(ast), Box::new(self.add())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else if self.consume("<") {
-                ast = AST::Node{ kind: NodeKind::Lt, lhs: Box::new(ast), rhs: Box::new(self.add()) };
+                ast = AST::Node{ kind: NodeKind::Lt(Box::new(ast), Box::new(self.add())), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else if self.consume(">=") {
-                ast = AST::Node{ kind: NodeKind::Le, rhs: Box::new(ast), lhs: Box::new(self.add()) };
+                ast = AST::Node{ kind: NodeKind::Le(Box::new(self.add()), Box::new(ast),), rhs: Box::new(AST::Nil), lhs: Box::new(AST::Nil) };
             } else if self.consume(">") {
-                ast = AST::Node{ kind: NodeKind::Lt, rhs: Box::new(ast), lhs: Box::new(self.add()) };
+                ast = AST::Node{ kind: NodeKind::Lt(Box::new(self.add()), Box::new(ast),), rhs: Box::new(AST::Nil), lhs: Box::new(AST::Nil) };
             } else {
                 break;
             }
@@ -376,11 +377,11 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("+") {
-                ast = AST::Node{ kind: NodeKind::Plus, 
-                    lhs: Box::new(ast), rhs: Box::new(self.mul()) };
+                ast = AST::Node{ kind: NodeKind::Plus(Box::new(ast), Box::new(self.mul())), 
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else if self.consume("-") {
-                ast = AST::Node{ kind: NodeKind::Minus, 
-                    lhs: Box::new(ast), rhs: Box::new(self.mul()) };
+                ast = AST::Node{ kind: NodeKind::Minus(Box::new(ast), Box::new(self.mul())), 
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else {
                 break;
             }
@@ -394,11 +395,11 @@ impl Parser {
 
         while !self.is_eof() {
             if self.consume("*") {
-                ast = AST::Node{ kind: NodeKind::Mul, 
-                    lhs: Box::new(ast), rhs: Box::new(self.unary()) };
+                ast = AST::Node{ kind: NodeKind::Mul(Box::new(ast), Box::new(self.unary())), 
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else if self.consume("/") {
-                ast = AST::Node{ kind: NodeKind::Div, 
-                    lhs: Box::new(ast), rhs: Box::new(self.unary()) };
+                ast = AST::Node{ kind: NodeKind::Div(Box::new(ast), Box::new(self.unary())), 
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
             } else {
                 break;
             }
@@ -412,14 +413,14 @@ impl Parser {
         if self.consume("+") {
             return self.unary();
         } else if self.consume("-") {
-            return AST::Node{ kind: NodeKind::Minus,
-                    lhs: Box::new(new_node_num(0)), rhs: Box::new(self.unary()) };
+            return AST::Node{ kind: NodeKind::Minus(Box::new(new_node_num(0)), Box::new(self.unary())),
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         } else if self.consume("*") {
-            return AST::Node{ kind: NodeKind::Deref,
-                    lhs: Box::new(self.unary()), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Deref(Box::new(self.unary())),
+                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         }  else if self.consume("&") {
-            return AST::Node{ kind: NodeKind::Addr,
-                    lhs: Box::new(self.unary()), rhs: Box::new(AST::Nil) };
+            return AST::Node{ kind: NodeKind::Addr(Box::new(self.unary())),
+                lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) };
         } else {
             return self.primary();
         }
@@ -541,10 +542,13 @@ impl Parser {
             };
 
             if self.consume("=") {
-                let init = AST::Node{ kind: NodeKind::Assign,
-                    lhs: Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset, ty: ty.clone()},
-                    lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }),
-                    rhs: Box::new(self.expr()) };
+                let init = AST::Node{ kind: NodeKind::Assign(
+                    Box::new(AST::Node{ kind: NodeKind::Var{ name: var_name.clone(), offset: offset, ty: ty.clone()},
+                        lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) }),
+                    Box::new(self.expr())
+                        ),
+                    lhs: Box::new(AST::Nil),
+                    rhs: Box::new(AST::Nil) };
                 inits.push(AST::Node{ kind: NodeKind::ExprStmt(Box::new(init)), lhs: Box::new(AST::Nil), rhs: Box::new(AST::Nil) });
         
             }
