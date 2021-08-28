@@ -1,7 +1,7 @@
 # ccr
 Ccr is a toy C compiler written in Rust language, which I am making in order to understand compilers and Rust.  
 This software supports a small subset of C and outputs x64 GNU assembler.  
-Ccr is not so fast, but the source is easy for beginners to read.   
+Ccr is not so fast, but the source code is easy for beginners to read.   
 
 
 # Usage
