@@ -129,11 +129,11 @@ And you need to link the .o file to the assembly dumped by ccr.
 
 # Internals
 Ccr is designed with reference to chibicc.  
-If you want to the internals, please read [chibicc internals](https://github.com/rui314/chibicc#internals)  
+If you want to laern the internals, please read [chibicc internals](https://github.com/rui314/chibicc#internals)  
 
 
 # References
 0. [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook#), Rui Ueyama
-1. [chibicc: A Small C Compiler.](https://github.com/rui314/chibicc), rui314
+1. [chibicc: A Small C Compiler](https://github.com/rui314/chibicc), rui314
 2. [Compilers: Principles, Techniques, and Tools](https://www.amazon.com/Compilers-Principles-Techniques-Tools-2nd/dp/0321486811), Alfred V.Aho, Monica S.Lam, Ravi Sethi, and Jeffrey D.Ullman
 3. [A Grammar for the C- Programming Language](http://marvin.cs.uidaho.edu/Teaching/CS445/c-Grammar.pdf), Robert Heckendorn

@@ -1,7 +1,4 @@
+
 int i;
-for (i =1;; i = i + 1) {
-    int sq = square(i);
-    dump2(i, sq);
-    mysleep(100000);
-}
-return 0;
+
+i = 100;

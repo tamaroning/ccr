@@ -101,7 +101,7 @@ impl CodeGenerator {
             },
             // integers
             NodeKind::Num(i) => {
-                self.output(&format!("    push {};", i));
+                self.output(&format!("    push {}", i));
                 return;
             },
             // variables
