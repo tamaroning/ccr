@@ -99,18 +99,14 @@ And you need to link the .o file to the assembly dumped by ccr.
 - [x] Step13 {}ブロック
 - [x] Step14 関数呼び出し
 - [x] 単項*と& (derefとaddr)
-    - 現在はbyte単位での演算が可能
-- [ ] 型 (int, int*, int**, ...)
-    - 次にsizeofを実装する必要がありそう
-- [ ] 定義,宣言
-    - intのみ対応
-    - ポインタ型の実装と並行して進める
-    - int a = 0, b = 1; は{a=0;b=0}と等価の出力を行うのでスコープの実装後に修正が必要
+    - [] *&*&aはエラーになるが、これは正しいのか?
+- [x] 型 (int, int*, int**, ...)
+    - [] intもint*も8 byteなので修正の必要あり
+- [x] 変数の定義,宣言
 - [ ] Step15 関数定義
 
 
 ##  Refactoring and improvement
-- [x] Refactoring: TokenizeとParseの処理を分ける  
 - [x] .cファイルを読み込んで.sファイルを吐き出せるようにする
 - [x] 標準出力に実行中の情報を出力できるようにする
 - [ ] コード生成時に検出されるエラー出力の強化
@@ -121,10 +117,21 @@ And you need to link the .o file to the assembly dumped by ccr.
     - 後ろに;が続く場合のみ許容
 - [ ] for(int i = 0;;)のようにfor内で変数の定義ができるようにする
 - [ ] 関数呼び出し時のスタックフレームの確保(スタックフレームサイズの把握)とretの数を修正する
-- [ ] ポインタの演算の修正 (intのポインタpにNを足すと,N要素先のintを指すようにする, つまり+/-演算子のオーバーロード)
 - [ ] 6つ以上の引数の関数呼び出し
 - [ ] EBNFの修正 C言語の正しい文法にする
 - [ ] 変数スコープの実装
+{}ブロックによってスコープが形成される。例えば、
+
+```c
+int main(void) {
+    int a= 1;
+    {
+        int a = 2;
+        int b = 3;
+    }
+    return b; // Error
+}
+```
 
 
 # Internals
