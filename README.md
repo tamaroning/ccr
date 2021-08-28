@@ -19,30 +19,30 @@ $ cargo build
 After the build, Compile text(.c) file:  
 
 ```sh
-$ ./ccr [file path]
+$ ./target/debug/ccr [file path]
 ```
-By default, the assembly is written to tmp.s.  
+By default, the assembly is written to ```debug/target/tmp.s```.  
   
-Then assemble tmp.s into an executable binary:  
+Then assemble ```debug/taeget/tmp.s``` into an executable binary:  
 
 ```sh
-$ cc -o tmp tmp.s
-$ ./tmp
+$ cc debug/target/tmp.s
+$ ./a.out
 ```
 
-Check the return value:  
+After execute the binary, to check the return value, run:  
 
 ```sh
 $ echo $?
 ```
-Make sure that the return value is cure in the range of 0~255  
+Make sure that the return value is cure in the range of 0~255.  
 
 
 ## Test
-You can run test.sh to execute the demo:  
+To execute the demo, run:  
 
 ```sh
-$ ./test.sh
+$ ./test/test-all.sh
 ```
 
 
