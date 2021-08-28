@@ -23,7 +23,10 @@ assert() {
 
 assert 10 '
 int main(void) {
-    return 1+5+4;
+    return ret1() * 10;
+}
+int ret1(void) {
+    return 1;
 }
 '
 

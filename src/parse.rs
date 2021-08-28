@@ -17,8 +17,9 @@ fn test_parse() {
     println!("{:?}", ast);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Type {
+    Void,
     Int,
     Ptr(Box<Type>),
 }
@@ -26,7 +27,7 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
-    FuncDecl{ name: String, frame_size: usize, stmts: Box<Vec<AST>> },
+    FuncDecl{ name: String, ret_type: Type, frame_size: usize, stmts: Box<Vec<AST>> },
 
     // --- Expression --- 
     Num(isize), // integers
@@ -62,7 +63,7 @@ pub enum AST {
 impl AST {
     pub fn kind(&self) -> NodeKind {
         match self.clone() {
-            AST::Node{ kind: k, ..} => k,
+            AST::Node{ kind: k} => k,
             _ => panic!("Nil doesn't have kind"),
         }
     }
@@ -210,7 +211,11 @@ impl Parser {
         let mut stmts = Vec::new();
 
         
-        self.consume("int");
+        let mut ret_ty = self.declspec();
+        while self.consume("*") {
+            ret_ty = Type::Ptr(Box::new(ret_ty));
+        }
+
         let func_name = self.consume_any().string;
         self.consume("(");
         self.consume("void");
@@ -220,7 +225,7 @@ impl Parser {
             stmts.push(self.stmt());
         }
 
-        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, frame_size: self.offset, stmts: Box::new(stmts), }}
+        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, ret_type: ret_ty, frame_size: self.offset, stmts: Box::new(stmts), }}
 
     }
 
@@ -228,6 +233,7 @@ impl Parser {
     //      | declararion ";"
     //      | "{" stmt* "}"
     //      | "return" expr ";"
+    //      | "return" ;
     //      | "if" "(" expr ")" stmt ("else" stmt)?
     //      | "while" "(" expr ")" stmt
     //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
@@ -235,9 +241,14 @@ impl Parser {
     fn stmt(&mut self) -> AST {
         // "return" expr ";" 
         if self.consume("return") {
-            let ast = AST::Node{ kind: NodeKind::Return(Box::new(self.expr()))};
-            self.expected(";");
-            return ast;
+            let ast;
+            if self.is(";") {
+                ast = AST::Node{ kind: NodeKind::Return(Box::new(AST::Nil))};
+            } else { 
+                ast = AST::Node{ kind: NodeKind::Return(Box::new(self.expr()))};
+            }
+                self.expected(";");
+                return ast;
         }
         // "if" "(" expr ")" stmt ("else" stmt)?
         else if self.consume("if") {
@@ -466,8 +477,9 @@ impl Parser {
     fn declspec(&mut self) -> Type {
         if self.consume("int") {
             return Type::Int;
-        }
-        else {
+        } else if self.consume("void") {
+            return Type::Void;
+        } else {
             self.error_at("unexpected type");
             Type::Int
         }
@@ -481,6 +493,10 @@ impl Parser {
             //panic!("pointer type is not implemented");
             ty = Type::Ptr(Box::new(ty));
         }
+        if ty == Type::Void {
+            self.error_at("Type void must not be a variable type");
+        }
+
         let ident_name = self.consume_any().string;
         (ident_name, ty)
     }
@@ -508,6 +524,7 @@ impl Parser {
                     let var_size = match ty {
                         Type::Int => 8,
                         Type::Ptr(_) => 8,
+                        _ => 0, // voidのカバー
                     };
                     //println!("{:?} {:?} {:?}", var_name, ty, var_size);
                     offset = self.offset;

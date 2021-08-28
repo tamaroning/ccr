@@ -213,7 +213,7 @@ impl CodeGenerator {
 
         if is_nil(ast.clone()) { panic!("incorrect statement"); }
         match ast.kind() {
-            NodeKind::FuncDecl{ name: func_name, frame_size: func_frame_size, stmts: func_stmts, } => {
+            NodeKind::FuncDecl{ name: func_name, ret_type: _ret_ty, frame_size: func_frame_size, stmts: func_stmts, } => {
                 self.output(&format!("{}:", func_name));
                 self.output("    push rbp");
                 self.output("    mov rbp, rsp");
@@ -224,16 +224,19 @@ impl CodeGenerator {
                     self.gen_no_ret(elm);
                     // one value remains on the stack top as the result of evaluating expression
                 }
-
+                
+                // ToDo ret_typeでどうこうする
 
                 return;
             },
             NodeKind::Return(ast) => {
-                self.gen_expr(*ast);
-                self.output("    pop rax");
+                if !is_nil(*ast.clone()) {
+                    self.gen_expr(*ast);
+                    self.output("    pop rax");
+                }
                 self.output("    mov rsp, rbp");
                 self.output("    pop rbp");
-                self.output("    ret"); // Todo 簡単のためにretが複数出力されることがある
+                self.output("    ret");
                 return;
             },
             NodeKind::If{ cond: c, then: t, els: e } => {
