@@ -23,9 +23,8 @@ assert() {
     fi
 }
 
-assert 10 '{return 1+5+4;}'
-assert 7 '{return 10 - 5 + 2;}'
-assert 100 '{return (1000*31 -1000)/300;}'
-assert  10 '{return ((40-38)*2 + 50)/6 + 1;}'
+assert 10 '{int a = 10;return *(&a);}'
+assert 2 '{int a = 1;int b = 2;return *(&a-4);}'
+assert 6 '{int a = 5;int b;*(&a-4)=6;return b;}'
 
 echo OK
