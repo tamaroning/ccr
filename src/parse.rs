@@ -27,7 +27,7 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub enum NodeKind {
-    FuncDecl{ name: String, ret_type: Type, frame_size: usize, stmts: Box<Vec<AST>> },
+    FuncDecl{ name: String, args: Box<Vec<(usize, Type)>>, ret_type: Type, frame_size: usize, stmts: Box<Vec<AST>> },
 
     // --- Expression --- 
     Num(isize), // integers
@@ -202,12 +202,13 @@ impl Parser {
         ret
     }
 
-    //func_decl = ident () { stmt* }
+    //func_decl = ident "(" ("void"|(declspec declarator) (, declspec declarator)* ) ")" { stmt* }
     fn func_decl(&mut self) -> AST {
         // reset the stack frame size and the local variables
         self.offset = 0;
         self.locals = HashMap::new();
 
+        let mut args = Vec::new();
         let mut stmts = Vec::new();
 
         
@@ -218,14 +219,35 @@ impl Parser {
 
         let func_name = self.consume_any().string;
         self.consume("(");
-        self.consume("void");
+        if !self.consume("void") {
+            // do-whileをはさむ
+            while {
+                let arg_type = self.declspec();
+                let (arg_name, arg_type) = self.declarator(arg_type);
+                
+                // offsetをすすめる
+                self.offset += match arg_type {
+                    Type::Int => 8,
+                    Type::Ptr(_) => 8,
+                    _ => 0,
+                };
+
+                // 引数リストにわたす (codegenに伝える)
+                args.push((self.offset, arg_type.clone()));
+                // ローカル変数リストにpush
+                self.locals.insert(arg_name, (self.offset, arg_type.clone()));
+                
+                self.consume(",") // loop only while this is met
+            }{}
+        }
+
         self.consume(")");
         self.consume("{");
         while !self.consume("}") {
             stmts.push(self.stmt());
         }
 
-        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, ret_type: ret_ty, frame_size: self.offset, stmts: Box::new(stmts), }}
+        AST::Node{ kind: NodeKind::FuncDecl{ name: func_name, args: Box::new(args), ret_type: ret_ty, frame_size: self.offset, stmts: Box::new(stmts), }}
 
     }
 

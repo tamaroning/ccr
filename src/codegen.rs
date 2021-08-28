@@ -213,13 +213,16 @@ impl CodeGenerator {
 
         if is_nil(ast.clone()) { panic!("incorrect statement"); }
         match ast.kind() {
-            NodeKind::FuncDecl{ name: func_name, ret_type: _ret_ty, frame_size: func_frame_size, stmts: func_stmts, } => {
+            NodeKind::FuncDecl{ name: func_name, args: func_args, ret_type: _ret_ty, frame_size: func_frame_size, stmts: func_stmts, } => {
                 self.output(&format!("{}:", func_name));
                 self.output("    push rbp");
                 self.output("    mov rbp, rsp");
                 // prepare the stack frame
                 self.output(&format!("    sub rsp, {}", func_frame_size));
 
+                for i in 0..6 {
+                    if func_args.len() >= i+1 { self.output(&format!("    mov [rbp - {}], {}", func_args[i].0, ARGREG[i])); }
+                }
                 for elm in *func_stmts.clone() {
                     self.gen_no_ret(elm);
                     // one value remains on the stack top as the result of evaluating expression
