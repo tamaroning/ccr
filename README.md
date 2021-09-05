@@ -93,20 +93,20 @@ And you need to link the .o file to the assembly dumped by ccr.
 
 # Todo
 ## Steps  
-- [x] Step3 簡単な式(例: 3+12-5)の結果を出力する
-- [x] Step5-1 EBNFによる文法の定義と再帰下降構文解析
-- [x] Step5-2 スタックマシンへのコンパイル
-- [x] Step6 単項プラス/マイナス
-- [x] Step7 比較演算子
-- [x] Step9,10 ローカル変数
-- [x] Step11 return文
-- [x] Step12 if-else, for, while
-- [x] Step13 {}ブロック
-- [x] Step14 関数呼び出し
+- [x] 簡単な式(例: 3+12-5)の結果を出力する
+- [x] EBNFによる文法の定義と再帰下降構文解析
+- [x] スタックマシンへのコンパイル
+- [x] 単項プラス/マイナス
+- [x] 比較演算子
+- [x] ローカル変数
+- [x] return文
+- [x] if-else, for, while
+- [x] {}ブロック
+- [x] 関数呼び出し
 - [x] 単項*と& (derefとaddr)
 - [x] 型 (int, int*, int**, ...)
 - [x] 変数の定義,宣言
-- [x] Step15 関数定義
+- [x] 関数定義
 
 
 ##  Refactoring and improvement
