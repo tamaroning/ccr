@@ -1,8 +1,4 @@
-#![allow(dead_code)]
-
 use std::env;
-#[allow(unused_imports)]
-use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;

@@ -1,15 +1,12 @@
-use std::collections::HashMap;
-#[allow(unused_imports)]
-use std::fmt;
-
-#[allow(unused_imports)]
-use crate::tokenize::tokenize;
 use crate::tokenize::Token;
 use crate::tokenize::TokenKind;
 
+use std::collections::HashMap;
+
 #[test]
 fn test_parse() {
-    let tokens = tokenize(String::from("int a,b;int c=a;"));
+    use crate::tokenize::tokenize;
+    let tokens = tokenize(String::from("int a, b; int c = a;"));
     println!("{:?}", tokens);
     let ast = parse(tokens);
     println!("{:?}", ast);
@@ -59,21 +56,24 @@ pub enum NodeKind {
     ExprStmt(Box<AST>),
     Block(Box<Vec<AST>>), // {} block
     Return(Box<AST>),     // return statement
+    // if([cond(expr)])[then(stmt)] else [els(stmt)]
     If {
         cond: Box<AST>,
         then: Box<AST>,
         els: Box<AST>,
-    }, // if([cond(expr)])[then(stmt)] else [els(stmt)]
+    },
+    //while([cond(expr)]) [proc(stmt)]
     While {
         cond: Box<AST>,
         proc: Box<AST>,
-    }, //while([cond(expr)]) [proc(stmt)]
+    },
+    // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
     For {
         a: Box<AST>,
         b: Box<AST>,
         c: Box<AST>,
         proc: Box<AST>,
-    }, // for([A(expr)];[B(expr)];[C(expr)]) [D(stmt)]
+    },
 }
 
 // Abstract syntax tree
@@ -534,7 +534,7 @@ impl Parser {
                 kind: NodeKind::Addr(Box::new(self.unary())),
             };
         } else {
-            return self.primary();
+            self.primary()
         }
     }
 
@@ -605,7 +605,7 @@ impl Parser {
 
         return AST::Node {
             kind: NodeKind::FuncCall {
-                name: func_name.clone(),
+                name: func_name,
                 argv: Box::new(argv),
             },
         };

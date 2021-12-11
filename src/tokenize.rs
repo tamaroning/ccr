@@ -145,8 +145,8 @@ impl Tokenizer {
         if !self.is_al() {
             return false;
         }
-        for i in 0..KEYWORD.len() {
-            if self.starts_with(KEYWORD[i]) {
+        for kw in KEYWORD {
+            if self.starts_with(kw) {
                 return true;
             }
         }
@@ -159,7 +159,7 @@ impl Tokenizer {
         let (_, cur_char) = iter.next().unwrap();
         let (next_pos, _) = iter.next().unwrap_or((1, ' '));
         self.pos += next_pos;
-        return cur_char;
+        cur_char
     }
 
     // read forward n characters
@@ -185,7 +185,7 @@ impl Tokenizer {
         while !self.is_eof() && test(self.next_char()) {
             result.push(self.read_char());
         }
-        return result;
+        result
     }
 
     // read forward whitespaces and LF
